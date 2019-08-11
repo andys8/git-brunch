@@ -32,10 +32,10 @@ drawUI :: (Show a) => L.List () a -> [Widget ()]
 drawUI l = [ui]
   where
     label = str "Item " <+> cur <+> str " of " <+> total
-    cur   = case l ^. (L.listSelectedL) of
+    cur   = case l ^. L.listSelectedL of
         Nothing -> str "-"
         Just i  -> str (show (i + 1))
-    total = str $ show $ Vec.length $ l ^. (L.listElementsL)
+    total = str $ show $ Vec.length $ l ^. L.listElementsL
     box   = B.borderWithLabel label $ L.renderList listDrawElement True l
     ui    = C.vCenter $ padLeftRight 3 $ vBox
         [ C.hCenter box
@@ -51,20 +51,20 @@ appEvent
 appEvent l (T.VtyEvent e) = case e of
     V.EvKey (V.KChar '+') [] ->
         let el  = nextElement (L.listElements l)
-            pos = Vec.length $ l ^. (L.listElementsL)
+            pos = Vec.length $ l ^. L.listElementsL
         in  M.continue $ L.listInsert pos el l
 
-    V.EvKey (V.KChar '-') [] -> case l ^. (L.listSelectedL) of
+    V.EvKey (V.KChar '-') [] -> case l ^. L.listSelectedL of
         Nothing -> M.continue l
         Just i  -> M.continue $ L.listRemove i l
 
     V.EvKey V.KEsc [] -> M.halt l
 
-    ev -> M.continue =<< (L.handleListEventVi L.handleListEvent) ev l
+    ev -> M.continue =<< L.handleListEventVi L.handleListEvent ev l
   where
     nextElement :: Vec.Vector Char -> Char
     nextElement v = fromMaybe '?'
-        $ Vec.find (flip Vec.notElem v) (Vec.fromList ['a' .. 'z'])
+        $ Vec.find (`Vec.notElem` v) (Vec.fromList ['a' .. 'z'])
 appEvent l _ = M.continue l
 
 listDrawElement :: (Show a) => Bool -> a -> Widget ()
@@ -72,7 +72,7 @@ listDrawElement sel a =
     let selStr s = if sel
             then withAttr customAttr (str $ "<" <> s <> ">")
             else str s
-    in  C.hCenter $ str "Item " <+> (selStr $ show a)
+    in  C.hCenter $ str "Item " <+> selStr (show a)
 
 initialState :: L.List () Char
 initialState = L.list () (Vec.fromList ['a', 'b', 'c']) 1
