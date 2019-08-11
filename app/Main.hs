@@ -1,6 +1,7 @@
 module Main where
 
-import Lib
+import qualified GitBrunch
 
 main :: IO ()
-main = gitBrunch
+main = GitBrunch.main
+
