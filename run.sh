@@ -1,3 +1,2 @@
 #!/bin/sh
-stack build --fast --file-watch --exec git-brunch-exe
-
+stack build --fast --exec git-brunch-exe
