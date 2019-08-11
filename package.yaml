@@ -30,7 +30,7 @@ library:
   source-dirs: src
 
 executables:
-  git-brunch-exe:
+  git-brunch:
     main:                Main.hs
     source-dirs:         app
     ghc-options:

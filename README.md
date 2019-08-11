@@ -5,7 +5,7 @@
 ```haskell
 stack setup
 stack build
-stack exec git-brunch-exe
+stack exec git-brunch
 ```
 
 ## REPL

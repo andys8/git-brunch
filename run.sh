@@ -1,2 +1,2 @@
 #!/bin/sh
-stack build --fast --exec git-brunch-exe
+stack build --fast --exec git-brunch
