@@ -30,49 +30,49 @@ import qualified Data.Vector                   as Vec
 
 drawUI :: (Show a) => L.List () a -> [Widget ()]
 drawUI l = [ui]
-  where
-    label = str "Item " <+> cur <+> str " of " <+> total
-    cur   = case l ^. L.listSelectedL of
-        Nothing -> str "-"
-        Just i  -> str (show (i + 1))
-    total = str $ show $ Vec.length $ l ^. L.listElementsL
-    box   = B.borderWithLabel label $ L.renderList listDrawElement True l
-    ui    = C.vCenter $ padLeftRight 3 $ vBox
-        [ C.hCenter box
-        , str " "
-        , C.hCenter $ str "Press +/- to add/remove list elements."
-        , C.hCenter $ str "Press Esc to exit."
-        ]
+ where
+  label = str "Item " <+> cur <+> str " of " <+> total
+  cur   = case l ^. L.listSelectedL of
+    Nothing -> str "-"
+    Just i  -> str (show (i + 1))
+  total = str $ show $ Vec.length $ l ^. L.listElementsL
+  box   = B.borderWithLabel label $ L.renderList listDrawElement True l
+  ui    = C.vCenter $ padLeftRight 3 $ vBox
+    [ C.hCenter box
+    , str " "
+    , C.hCenter $ str "Press +/- to add/remove list elements."
+    , C.hCenter $ str "Press Esc/Q to exit."
+    ]
 
 appEvent
-    :: L.List () Char
-    -> T.BrickEvent () e
-    -> T.EventM () (T.Next (L.List () Char))
+  :: L.List () Char
+  -> T.BrickEvent () e
+  -> T.EventM () (T.Next (L.List () Char))
 appEvent l (T.VtyEvent e) = case e of
-    V.EvKey (V.KChar '+') [] ->
-        let el  = nextElement (L.listElements l)
-            pos = Vec.length $ l ^. L.listElementsL
-        in  M.continue $ L.listInsert pos el l
+  V.EvKey (V.KChar '+') [] ->
+    let el  = nextElement (L.listElements l)
+        pos = Vec.length $ l ^. L.listElementsL
+    in  M.continue $ L.listInsert pos el l
 
-    V.EvKey (V.KChar '-') [] -> case l ^. L.listSelectedL of
-        Nothing -> M.continue l
-        Just i  -> M.continue $ L.listRemove i l
+  V.EvKey (V.KChar '-') [] -> case l ^. L.listSelectedL of
+    Nothing -> M.continue l
+    Just i  -> M.continue $ L.listRemove i l
 
-    V.EvKey V.KEsc [] -> M.halt l
+  V.EvKey V.KEsc [] -> M.halt l
+  V.EvKey (V.KChar 'q') [] -> M.halt l
 
-    ev -> M.continue =<< L.handleListEventVi L.handleListEvent ev l
-  where
-    nextElement :: Vec.Vector Char -> Char
-    nextElement v = fromMaybe '?'
-        $ Vec.find (`Vec.notElem` v) (Vec.fromList ['a' .. 'z'])
+  ev -> M.continue =<< L.handleListEventVi L.handleListEvent ev l
+ where
+  nextElement :: Vec.Vector Char -> Char
+  nextElement v =
+    fromMaybe '?' $ Vec.find (`Vec.notElem` v) (Vec.fromList ['a' .. 'z'])
 appEvent l _ = M.continue l
 
 listDrawElement :: (Show a) => Bool -> a -> Widget ()
 listDrawElement sel a =
-    let selStr s = if sel
-            then withAttr customAttr (str $ "<" <> s <> ">")
-            else str s
-    in  C.hCenter $ str "Item " <+> selStr (show a)
+  let selStr s =
+          if sel then withAttr customAttr (str $ "<" <> s <> ">") else str s
+  in  C.hCenter $ str "Item " <+> selStr (show a)
 
 initialState :: L.List () Char
 initialState = L.list () (Vec.fromList ['a', 'b', 'c']) 1
@@ -82,11 +82,11 @@ customAttr = L.listSelectedAttr <> "custom"
 
 theMap :: A.AttrMap
 theMap = A.attrMap
-    V.defAttr
-    [ (L.listAttr        , V.white `on` V.black)
-    , (L.listSelectedAttr, V.red `on` V.white)
-    , (customAttr        , fg V.cyan)
-    ]
+  V.defAttr
+  [ (L.listAttr        , V.white `on` V.black)
+  , (L.listSelectedAttr, V.red `on` V.white)
+  , (customAttr        , fg V.cyan)
+  ]
 
 theApp :: M.App (L.List () Char) e ()
 theApp = M.App { M.appDraw         = drawUI
