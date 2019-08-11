@@ -51,8 +51,9 @@ appEvent
   -> T.EventM () (T.Next (L.List () Branch))
 appEvent l (T.VtyEvent e) = case e of
 
-  V.EvKey V.KEsc [] -> M.halt l
-  V.EvKey (V.KChar 'q') [] -> M.halt l
+  V.EvKey V.KEsc        [] -> M.halt $ L.listClear l
+  V.EvKey (V.KChar 'q') [] -> M.halt $ L.listClear l
+  V.EvKey V.KEnter      [] -> M.halt l
 
   ev -> M.continue =<< L.handleListEventVi L.handleListEvent ev l
 appEvent l _ = M.continue l
@@ -88,5 +89,7 @@ theApp = M.App { M.appDraw         = drawUI
 main :: IO ()
 main = do
   branches <- Git.branch
-  void $ M.defaultMain theApp (initialState branches)
+  res      <- M.defaultMain theApp (initialState branches)
+  putStrLn $ "Selected entry: " <> show (L.listSelectedElement res)
+
 
