@@ -1,8 +1,15 @@
 # git-brunch
 
+## Install
+
+```sh
+stack install
+```
+
+
 ## Execute
 
-```haskell
+```sh
 stack setup
 stack build
 stack exec git-brunch
@@ -10,6 +17,6 @@ stack exec git-brunch
 
 ## REPL
 
-```haskell
+```sh
 stack ghci
 ```
