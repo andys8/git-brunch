@@ -38,7 +38,7 @@ drawUI l = [ui]
     Just i  -> str (show (i + 1))
   total = str $ show $ Vec.length $ l ^. L.listElementsL
   box   = B.borderWithLabel label $ L.renderList listDrawElement True l
-  ui    = C.vCenter $ padLeftRight 3 $ vBox
+  ui    = C.vCenter $ padLeftRight 1 $ vBox
     [ C.hCenter box
     , str " "
     , C.hCenter $ str "Press +/- to add/remove list elements."
