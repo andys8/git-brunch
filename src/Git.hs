@@ -1,5 +1,6 @@
 module Git
   ( branch
+  , Branch
   )
 where
 

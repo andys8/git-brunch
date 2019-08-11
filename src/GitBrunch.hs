@@ -27,11 +27,12 @@ import           Brick.Widgets.Core                       ( hLimit
                                                           )
 import qualified Brick.Widgets.List            as L
 import qualified Data.Vector                   as Vec
+import           Git
 
 drawUI :: (Show a) => L.List () a -> [Widget ()]
 drawUI l = [ui]
  where
-  label = str "Item " <+> cur <+> str " of " <+> total
+  label = str "Branch " <+> cur <+> str " of " <+> total
   cur   = case l ^. L.listSelectedL of
     Nothing -> str "-"
     Just i  -> str (show (i + 1))
@@ -45,37 +46,25 @@ drawUI l = [ui]
     ]
 
 appEvent
-  :: L.List () Char
+  :: L.List () Branch
   -> T.BrickEvent () e
-  -> T.EventM () (T.Next (L.List () Char))
+  -> T.EventM () (T.Next (L.List () Branch))
 appEvent l (T.VtyEvent e) = case e of
-  V.EvKey (V.KChar '+') [] ->
-    let el  = nextElement (L.listElements l)
-        pos = Vec.length $ l ^. L.listElementsL
-    in  M.continue $ L.listInsert pos el l
-
-  V.EvKey (V.KChar '-') [] -> case l ^. L.listSelectedL of
-    Nothing -> M.continue l
-    Just i  -> M.continue $ L.listRemove i l
 
   V.EvKey V.KEsc [] -> M.halt l
   V.EvKey (V.KChar 'q') [] -> M.halt l
 
   ev -> M.continue =<< L.handleListEventVi L.handleListEvent ev l
- where
-  nextElement :: Vec.Vector Char -> Char
-  nextElement v =
-    fromMaybe '?' $ Vec.find (`Vec.notElem` v) (Vec.fromList ['a' .. 'z'])
 appEvent l _ = M.continue l
 
 listDrawElement :: (Show a) => Bool -> a -> Widget ()
 listDrawElement sel a =
   let selStr s =
           if sel then withAttr customAttr (str $ "<" <> s <> ">") else str s
-  in  C.hCenter $ str "Item " <+> selStr (show a)
+  in  str "Branch " <+> selStr (show a)
 
-initialState :: L.List () Char
-initialState = L.list () (Vec.fromList ['a', 'b', 'c']) 1
+initialState :: [Branch] -> L.List () Branch
+initialState branches = L.list () (Vec.fromList branches) 1
 
 customAttr :: A.AttrName
 customAttr = L.listSelectedAttr <> "custom"
@@ -88,7 +77,7 @@ theMap = A.attrMap
   , (customAttr        , fg V.cyan)
   ]
 
-theApp :: M.App (L.List () Char) e ()
+theApp :: M.App (L.List () Branch) e ()
 theApp = M.App { M.appDraw         = drawUI
                , M.appChooseCursor = M.showFirstCursor
                , M.appHandleEvent  = appEvent
@@ -97,5 +86,7 @@ theApp = M.App { M.appDraw         = drawUI
                }
 
 main :: IO ()
-main = void $ M.defaultMain theApp initialState
+main = do
+  branches <- Git.branch
+  void $ M.defaultMain theApp (initialState branches)
 
