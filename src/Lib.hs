@@ -1,6 +1,12 @@
 module Lib
-    ( someFunc
+    ( gitBrunch
     ) where
 
-someFunc :: IO ()
-someFunc = putStrLn "git-brunch"
+
+import Brick
+
+ui :: Widget ()
+ui = str "Hello, world!"
+
+gitBrunch :: IO ()
+gitBrunch = simpleMain ui
