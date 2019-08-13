@@ -15,12 +15,14 @@ import           Brick.Util                               ( fg
                                                           , on
                                                           )
 import qualified Brick.Widgets.Border          as B
+import qualified Brick.Widgets.Border.Style    as BS
 import qualified Brick.Widgets.Center          as C
 import           Brick.Widgets.Core                       ( hLimit
                                                           , str
                                                           , vBox
                                                           , vLimit
                                                           , withAttr
+                                                          , withBorderStyle
                                                           , (<+>)
                                                           , padLeftRight
                                                           )
@@ -37,8 +39,12 @@ drawUI l = [ui]
     Nothing -> str "-"
     Just i  -> str (show (i + 1))
   total = str $ show $ Vec.length $ l ^. L.listElementsL
-  box   = B.borderWithLabel label $ L.renderList listDrawElement True l
-  ui    = C.vCenter $ padLeftRight 1 $ vBox
+  box =
+    withBorderStyle BS.unicodeBold
+      $ B.borderWithLabel label
+      $ hLimit 100
+      $ L.renderList listDrawElement True l
+  ui = C.vCenter $ padLeftRight 1 $ vBox
     [ C.hCenter box
     , str " "
     , instruction "HJKL/arrows" "navigate"
@@ -68,7 +74,7 @@ appEvent l (T.VtyEvent e) = case e of
 appEvent l _ = M.continue l
 
 listDrawElement :: Show a => Bool -> a -> Widget ()
-listDrawElement selected a = str (show a)
+listDrawElement selected a = C.hCenter $ str (show a)
 
 initialState :: [Branch] -> L.List () Branch
 initialState branches = L.list () (Vec.fromList branches) 1
