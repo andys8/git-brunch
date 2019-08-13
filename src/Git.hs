@@ -14,7 +14,11 @@ import           System.Exit
 data Branch = BranchLocal String
             | BranchCurrent String
             | BranchRemote String String
-              deriving (Show)
+
+instance (Show Branch) where
+  show (BranchLocal   n ) = n
+  show (BranchCurrent n ) = n
+  show (BranchRemote o n) = o <> "/" <> n
 
 listBranches :: IO [Branch]
 listBranches = toBranches <$> execGitBranch

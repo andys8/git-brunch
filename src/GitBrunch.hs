@@ -41,9 +41,18 @@ drawUI l = [ui]
   ui    = C.vCenter $ padLeftRight 1 $ vBox
     [ C.hCenter box
     , str " "
-    , C.hCenter $ str "Press +/- to add/remove list elements."
-    , C.hCenter $ str "Press Esc/Q to exit."
+    , instruction "HJKL/arrows" "navigate"
+    , instruction "Enter"       "checkout"
+    , instruction "Esc/Q"       "exit"
     ]
+  instruction keys action =
+    C.hCenter
+      $   str "Press "
+      <+> withAttr "key" (str keys)
+      <+> str " to "
+      <+> withAttr "bold" (str action)
+      <+> str "."
+
 
 appEvent
   :: L.List () Branch
@@ -58,24 +67,20 @@ appEvent l (T.VtyEvent e) = case e of
   ev -> M.continue =<< L.handleListEventVi L.handleListEvent ev l
 appEvent l _ = M.continue l
 
-listDrawElement :: (Show a) => Bool -> a -> Widget ()
-listDrawElement sel a =
-  let selStr s =
-          if sel then withAttr customAttr (str $ "<" <> s <> ">") else str s
-  in  str "Branch " <+> selStr (show a)
+listDrawElement :: Show a => Bool -> a -> Widget ()
+listDrawElement selected a = str (show a)
 
 initialState :: [Branch] -> L.List () Branch
 initialState branches = L.list () (Vec.fromList branches) 1
 
-customAttr :: A.AttrName
-customAttr = L.listSelectedAttr <> "custom"
 
 theMap :: A.AttrMap
 theMap = A.attrMap
   V.defAttr
-  [ (L.listAttr        , V.white `on` V.black)
-  , (L.listSelectedAttr, V.red `on` V.white)
-  , (customAttr        , fg V.cyan)
+  [ (L.listAttr        , fg V.white)
+  , (L.listSelectedAttr, V.black `on` V.yellow)
+  , (A.attrName "key", V.withStyle (V.brightYellow `on` V.black) V.bold)
+  , (A.attrName "bold" , V.withStyle (fg V.white) V.bold)
   ]
 
 theApp :: M.App (L.List () Branch) e ()
