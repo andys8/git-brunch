@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
--- {-# LANGUAGE CPP #-}
 module GitBrunch where
 
 import           Control.Monad                            ( void )
@@ -28,6 +27,7 @@ import           Brick.Widgets.Core                       ( hLimit
 import qualified Brick.Widgets.List            as L
 import qualified Data.Vector                   as Vec
 import           Git
+import           Data.Maybe                    as Maybe
 
 drawUI :: (Show a) => L.List () a -> [Widget ()]
 drawUI l = [ui]
@@ -88,8 +88,16 @@ theApp = M.App { M.appDraw         = drawUI
 
 main :: IO ()
 main = do
-  branches <- Git.branch
-  res      <- M.defaultMain theApp (initialState branches)
-  putStrLn $ "Selected entry: " <> show (L.listSelectedElement res)
+  branches   <- Git.listBranches
+  finalState <- M.defaultMain theApp (initialState branches)
+  let branch = snd <$> L.listSelectedElement finalState
+  printResult
+    =<< (case branch of
+          Just branch -> Git.checkout branch
+          Nothing     -> pure $ Left "No branch selected."
+        )
 
 
+printResult :: Either String String -> IO ()
+printResult (Left  e  ) = putStr e
+printResult (Right msg) = putStr msg
