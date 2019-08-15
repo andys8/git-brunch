@@ -4,7 +4,15 @@ A git checkout command-line tool
 
 ![screenshot](https://raw.githubusercontent.com/andys8/git-brunch/master/screenshot.png)
 
-## Install from source
+## Installation
+
+### Stack
+
+```sh
+stack install --resolver=lts-14 git-brunch
+```
+
+### From source
 
 ```sh
 git clone https://github.com/andys8/git-brunch.git
