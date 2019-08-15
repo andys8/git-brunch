@@ -118,17 +118,6 @@ appHandleEvent state (T.VtyEvent e) =
       focusRemote     = M.continue $ state { focus = Remote }
       deleteSelection = focussedBranchesL %~ L.listClear
       quit            = M.halt $ deleteSelection state
-      navigateDefault event = case focus state of
-        Local ->
-          (M.continue . (\l -> state { localBranches = l }))
-            =<< L.handleListEventVi L.handleListEvent
-                                    event
-                                    (localBranches state)
-        Remote ->
-          (M.continue . (\l -> state { remoteBranches = l }))
-            =<< L.handleListEventVi L.handleListEvent
-                                    event
-                                    (remoteBranches state)
   in  case e of
         V.EvKey V.KEsc        [] -> quit
         V.EvKey (V.KChar 'q') [] -> quit
@@ -137,8 +126,14 @@ appHandleEvent state (T.VtyEvent e) =
         V.EvKey (V.KChar 'h') [] -> focusLocal
         V.EvKey V.KRight      [] -> focusRemote
         V.EvKey (V.KChar 'l') [] -> focusRemote
-        event                    -> navigateDefault event
+        event                    -> navigate state event
 appHandleEvent state _ = M.continue state
+
+navigate :: State -> V.Event -> T.EventM Name (T.Next State)
+navigate state event = do
+  let update = L.handleListEventVi L.handleListEvent
+  newState <- T.handleEventLensed state focussedBranchesL update event
+  M.continue newState
 
 
 attributeMap :: A.AttrMap
