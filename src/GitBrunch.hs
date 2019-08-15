@@ -62,15 +62,15 @@ main = do
 
 
 app :: M.App State e Name
-app = M.App { M.appDraw         = drawUI
+app = M.App { M.appDraw         = appDraw
             , M.appChooseCursor = M.showFirstCursor
-            , M.appHandleEvent  = appEvent
+            , M.appHandleEvent  = appHandleEvent
             , M.appStartEvent   = return
             , M.appAttrMap      = const attributeMap
             }
 
-drawUI :: State -> [Widget Name]
-drawUI state =
+appDraw :: State -> [Widget Name]
+appDraw state =
   [ C.vCenter $ padAll 1 $ vBox
       [ hBox [C.hCenter localBranchList, C.hCenter remoteBranchList]
       , str " "
@@ -111,8 +111,8 @@ drawInstruction keys action =
     <+> withAttr "bold" (str action)
     <+> str "."
 
-appEvent :: State -> T.BrickEvent Name e -> T.EventM Name (T.Next State)
-appEvent state (T.VtyEvent e) =
+appHandleEvent :: State -> T.BrickEvent Name e -> T.EventM Name (T.Next State)
+appHandleEvent state (T.VtyEvent e) =
   let
     checkoutBranch = M.halt state
     focusLocal     = M.continue $ state { focus = Local }
@@ -136,7 +136,7 @@ appEvent state (T.VtyEvent e) =
       V.EvKey V.KRight      [] -> focusRemote
       V.EvKey (V.KChar 'l') [] -> focusRemote
       event                    -> navigateDefault event
-appEvent state _ = M.continue state
+appHandleEvent state _ = M.continue state
 
 
 attributeMap :: A.AttrMap
