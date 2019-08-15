@@ -7,11 +7,11 @@ import           Data.Maybe                               ( fromMaybe )
 import           Data.Monoid
 import           Debug.Trace
 import qualified Graphics.Vty                  as V
-import           Lens.Micro                               ( (^.)
+import           Lens.Micro                               ( (^.) -- view
+                                                          , (.~) -- set
+                                                          , (%~) -- over
                                                           , Lens'
-                                                          , (.~)
                                                           , Lens
-                                                          , set
                                                           , lens
                                                           )
 
@@ -53,7 +53,7 @@ main :: IO ()
 main = do
   branches   <- Git.listBranches
   finalState <- M.defaultMain app (initialState branches)
-  print =<< checkout (stateToBranch finalState)
+  print =<< checkout (selectedBranch finalState)
  where
   print (Left  e  ) = putStr e
   print (Right msg) = putStr msg
@@ -113,29 +113,31 @@ drawInstruction keys action =
 
 appHandleEvent :: State -> T.BrickEvent Name e -> T.EventM Name (T.Next State)
 appHandleEvent state (T.VtyEvent e) =
-  let
-    checkoutBranch = M.halt state
-    focusLocal     = M.continue $ state { focus = Local }
-    focusRemote    = M.continue $ state { focus = Remote }
-
-    quit = M.halt $ state { localBranches = L.listClear $ localBranches state }
-    navigateDefault event = case focus state of
-      Local ->
-        (M.continue . (\l -> state { localBranches = l }))
-          =<< L.handleListEventVi L.handleListEvent event (localBranches state)
-      Remote ->
-        (M.continue . (\l -> state { remoteBranches = l }))
-          =<< L.handleListEventVi L.handleListEvent event (remoteBranches state)
-  in
-    case e of
-      V.EvKey V.KEsc        [] -> quit
-      V.EvKey (V.KChar 'q') [] -> quit
-      V.EvKey V.KEnter      [] -> checkoutBranch
-      V.EvKey V.KLeft       [] -> focusLocal
-      V.EvKey (V.KChar 'h') [] -> focusLocal
-      V.EvKey V.KRight      [] -> focusRemote
-      V.EvKey (V.KChar 'l') [] -> focusRemote
-      event                    -> navigateDefault event
+  let checkoutBranch  = M.halt state
+      focusLocal      = M.continue $ state { focus = Local }
+      focusRemote     = M.continue $ state { focus = Remote }
+      deleteSelection = focussedBranchesL %~ L.listClear
+      quit            = M.halt $ deleteSelection state
+      navigateDefault event = case focus state of
+        Local ->
+          (M.continue . (\l -> state { localBranches = l }))
+            =<< L.handleListEventVi L.handleListEvent
+                                    event
+                                    (localBranches state)
+        Remote ->
+          (M.continue . (\l -> state { remoteBranches = l }))
+            =<< L.handleListEventVi L.handleListEvent
+                                    event
+                                    (remoteBranches state)
+  in  case e of
+        V.EvKey V.KEsc        [] -> quit
+        V.EvKey (V.KChar 'q') [] -> quit
+        V.EvKey V.KEnter      [] -> checkoutBranch
+        V.EvKey V.KLeft       [] -> focusLocal
+        V.EvKey (V.KChar 'h') [] -> focusLocal
+        V.EvKey V.KRight      [] -> focusRemote
+        V.EvKey (V.KChar 'l') [] -> focusRemote
+        event                    -> navigateDefault event
 appHandleEvent state _ = M.continue state
 
 
@@ -161,8 +163,8 @@ initialState branches = State
   isRemote _                  = False
 
 
-stateToBranch :: State -> Maybe Branch
-stateToBranch state =
+selectedBranch :: State -> Maybe Branch
+selectedBranch state =
   snd <$> L.listSelectedElement (state ^. focussedBranchesL)
 
 
