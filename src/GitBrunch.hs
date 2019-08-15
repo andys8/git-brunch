@@ -10,6 +10,7 @@ import qualified Graphics.Vty                  as V
 import           Lens.Micro                               ( (^.) -- view
                                                           , (.~) -- set
                                                           , (%~) -- over
+                                                          , (&)
                                                           , Lens'
                                                           , Lens
                                                           , lens
@@ -72,22 +73,22 @@ app = M.App { M.appDraw         = appDraw
 appDraw :: State -> [Widget Name]
 appDraw state =
   [ C.vCenter $ padAll 1 $ vBox
-      [ hBox [C.hCenter localBranchList, C.hCenter remoteBranchList]
+      [ hBox
+        [ C.hCenter $ toBranchList localBranchesL
+        , C.hCenter $ toBranchList remoteBranchesL
+        ]
       , str " "
-      , instructions
+      , vBox
+        [ drawInstruction "HJKL/arrows" "navigate"
+        , drawInstruction "Enter"       "checkout"
+        , drawInstruction "Esc/Q"       "exit"
+        ]
       ]
   ]
  where
-  hasFocus l = L.listName l == focus state
-  localBranchList =
-    drawBranchList (hasFocus $ localBranches state) (localBranches state)
-  remoteBranchList =
-    drawBranchList (hasFocus $ remoteBranches state) (remoteBranches state)
-  instructions = vBox
-    [ drawInstruction "HJKL/arrows" "navigate"
-    , drawInstruction "Enter"       "checkout"
-    , drawInstruction "Esc/Q"       "exit"
-    ]
+  toBranchList lens = state ^. lens & (\l -> drawBranchList (hasFocus l) l)
+  hasFocus = (focus state ==) . L.listName
+
 
 drawBranchList :: Show a => Bool -> L.List Name a -> Widget Name
 drawBranchList hasFocus list =
