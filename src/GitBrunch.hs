@@ -31,27 +31,31 @@ import qualified Data.Vector                   as Vec
 import           Git
 import           Data.Maybe                    as Maybe
 
-newtype State = State { localBranches :: L.List () Branch }
+data Name = Local | Remote deriving (Ord, Eq, Show)
+data State = State { localBranches :: L.List Name Branch, remoteBranches :: L.List Name Branch }
 
-drawUI :: State -> [Widget ()]
+drawUI :: State -> [Widget Name]
 drawUI state =
-  [C.vCenter $ padAll 1 $ vBox (C.hCenter branchBox : str " " : instructions)]
+  [ C.vCenter $ padAll 1 $ vBox
+      (C.hCenter branchBox1 : C.hCenter branchBox2 : str " " : instructions)
+  ]
  where
-  branchBox = drawBranchList $ localBranches state
+  branchBox1 = drawBranchList $ localBranches state
+  branchBox2 = drawBranchList $ remoteBranches state
   instructions =
     [ drawInstruction "HJKL/arrows" "navigate"
     , drawInstruction "Enter"       "checkout"
     , drawInstruction "Esc/Q"       "exit"
     ]
 
-drawBranchList :: Show a => L.List () a -> Widget ()
+drawBranchList :: Show a => L.List Name a -> Widget Name
 drawBranchList list =
   withBorderStyle BS.unicodeBold
     $ B.borderWithLabel (str "Branch")
     $ hLimit 100
     $ L.renderList listDrawElement True list
 
-drawInstruction :: String -> String -> Widget ()
+drawInstruction :: String -> String -> Widget n
 drawInstruction keys action =
   C.hCenter
     $   str "Press "
@@ -60,7 +64,7 @@ drawInstruction keys action =
     <+> withAttr "bold" (str action)
     <+> str "."
 
-appEvent :: State -> T.BrickEvent () e -> T.EventM () (T.Next State)
+appEvent :: State -> T.BrickEvent Name e -> T.EventM Name (T.Next State)
 appEvent state (T.VtyEvent e) = case e of
   V.EvKey V.KEsc [] ->
     M.halt $ state { localBranches = L.listClear $ localBranches state }
@@ -74,7 +78,7 @@ appEvent state (T.VtyEvent e) = case e of
 appEvent state _ = M.continue state
 
 
-listDrawElement :: Show a => Bool -> a -> Widget ()
+listDrawElement :: Show a => Bool -> a -> Widget Name
 listDrawElement selected a = C.hCenter $ str (show a)
 
 
@@ -88,10 +92,12 @@ attributeMap = A.attrMap
   ]
 
 initialState :: [Branch] -> State
-initialState branches =
-  State { localBranches = L.list () (Vec.fromList branches) 1 }
+initialState branches = State
+  { localBranches  = L.list Local (Vec.fromList branches) 1
+  , remoteBranches = L.list Remote (Vec.fromList branches) 1
+  }
 
-theApp :: M.App State e ()
+theApp :: M.App State e Name
 theApp = M.App { M.appDraw         = drawUI
                , M.appChooseCursor = M.showFirstCursor
                , M.appHandleEvent  = appEvent
