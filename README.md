@@ -1,22 +1,17 @@
 # git-brunch
 
-## Install
+A git checkout command-line tool
+
+![screenshot](./screenshot.png)
+
+## Install from source
 
 ```sh
+git clone https://github.com/andys8/git-brunch.git
+cd git-brunch
 stack install
 ```
 
+## Usage
 
-## Execute
-
-```sh
-stack setup
-stack build
-stack exec git-brunch
-```
-
-## REPL
-
-```sh
-stack ghci
-```
+Run `git-brunch` or `git brunch`.
