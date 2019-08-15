@@ -19,6 +19,7 @@ import           Lens.Micro                               ( (^.) -- view
 import qualified Brick.AttrMap                 as A
 import qualified Brick.Main                    as M
 import           Brick.Types                              ( Widget )
+import           Brick.Themes                             ( themeToAttrMap )
 import qualified Brick.Types                   as T
 import           Brick.Util                               ( fg
                                                           , on
@@ -40,10 +41,12 @@ import           Brick.Widgets.Core                       ( hLimit
                                                           )
 import qualified Brick.Widgets.List            as L
 import qualified Data.Vector                   as Vec
-import           Git
 import           Data.Maybe                    as Maybe
 import           Data.List
 import           Data.Char
+
+import           Git
+import           Theme                                    ( theme )
 
 
 data Name = Local | Remote deriving (Ord, Eq, Show)
@@ -67,7 +70,7 @@ app = M.App { M.appDraw         = appDraw
             , M.appChooseCursor = M.showFirstCursor
             , M.appHandleEvent  = appHandleEvent
             , M.appStartEvent   = return
-            , M.appAttrMap      = const attributeMap
+            , M.appAttrMap      = const $ themeToAttrMap theme
             }
 
 
@@ -91,20 +94,24 @@ appDraw state =
   hasFocus = (_focus state ==) . L.listName
 
 
-drawBranchList :: Show a => Bool -> L.List Name a -> Widget Name
+drawBranchList :: Bool -> L.List Name Branch -> Widget Name
 drawBranchList hasFocus list =
   withBorderStyle BS.unicodeBold
     $ B.borderWithLabel (drawTitle list)
     $ hLimit 80
-    $ L.renderList listDrawElement hasFocus list
+    $ L.renderList drawListElement hasFocus list
  where
   title Local  = map toUpper "local"
   title Remote = map toUpper "remote"
-  drawTitle = withAttr "bold" . str . title . L.listName
+  drawTitle = withAttr "title" . str . title . L.listName
 
 
-listDrawElement :: Show a => Bool -> a -> Widget Name
-listDrawElement selected a = padLeft (T.Pad 1) $ padRight T.Max $ str (show a)
+drawListElement :: Bool -> Branch -> Widget Name
+drawListElement selected branch =
+  padLeft (T.Pad 1) $ padRight T.Max $ highlight branch $ str $ show branch
+ where
+  highlight (BranchCurrent _) = withAttr "current"
+  highlight _                 = id
 
 
 drawInstruction :: String -> String -> Widget n
@@ -152,17 +159,6 @@ navigate state event = do
   let update = L.handleListEventVi L.handleListEvent
   newState <- T.handleEventLensed state focussedBranchesL update event
   M.continue newState
-
-
-attributeMap :: A.AttrMap
-attributeMap = A.attrMap
-  V.defAttr
-  [ (L.listAttr               , fg V.white)
-  , (L.listSelectedAttr       , fg V.white)
-  , (L.listSelectedFocusedAttr, V.black `on` V.yellow)
-  , (A.attrName "key", V.withStyle (V.brightYellow `on` V.black) V.bold)
-  , (A.attrName "bold"        , V.withStyle (fg V.white) V.bold)
-  ]
 
 
 initialState :: [Branch] -> State
