@@ -1,14 +1,19 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RankNTypes #-}
 module GitBrunch where
-
 
 import           Control.Monad                            ( void )
 import           Data.Maybe                               ( fromMaybe )
 import           Data.Monoid
 import           Debug.Trace
 import qualified Graphics.Vty                  as V
-import           Lens.Micro                               ( (^.) )
+import           Lens.Micro                               ( (^.)
+                                                          , Lens'
+                                                          , (.~)
+                                                          , Lens
+                                                          , set
+                                                          , lens
+                                                          )
 
 import qualified Brick.AttrMap                 as A
 import qualified Brick.Main                    as M
@@ -39,8 +44,30 @@ import           Data.Maybe                    as Maybe
 import           Data.List
 import           Data.Char
 
+
 data Name = Local | Remote deriving (Ord, Eq, Show)
 data State = State { focus :: Name, localBranches :: L.List Name Branch, remoteBranches :: L.List Name Branch }
+
+
+main :: IO ()
+main = do
+  branches   <- Git.listBranches
+  finalState <- M.defaultMain app (initialState branches)
+  print =<< checkout (stateToBranch finalState)
+ where
+  print (Left  e  ) = putStr e
+  print (Right msg) = putStr msg
+  checkout (Just b) = Git.checkout b
+  checkout Nothing  = pure $ Left "No branch selected."
+
+
+app :: M.App State e Name
+app = M.App { M.appDraw         = drawUI
+            , M.appChooseCursor = M.showFirstCursor
+            , M.appHandleEvent  = appEvent
+            , M.appStartEvent   = return
+            , M.appAttrMap      = const attributeMap
+            }
 
 drawUI :: State -> [Widget Name]
 drawUI state =
@@ -133,32 +160,30 @@ initialState branches = State
   isRemote (BranchRemote _ _) = True
   isRemote _                  = False
 
-theApp :: M.App State e Name
-theApp = M.App { M.appDraw         = drawUI
-               , M.appChooseCursor = M.showFirstCursor
-               , M.appHandleEvent  = appEvent
-               , M.appStartEvent   = return
-               , M.appAttrMap      = const attributeMap
-               }
+
 stateToBranch :: State -> Maybe Branch
-stateToBranch State { focus, localBranches, remoteBranches } = snd
-  <$> L.listSelectedElement bs
- where
-  bs = case focus of
-    Local  -> localBranches
-    Remote -> remoteBranches
+stateToBranch state =
+  snd <$> L.listSelectedElement (state ^. focussedBranchesL)
 
 
-main :: IO ()
-main = do
-  branches   <- Git.listBranches
-  finalState <- M.defaultMain theApp (initialState branches)
-  printResult
-    =<< (case stateToBranch finalState of
-          Just branch -> Git.checkout branch
-          Nothing     -> pure $ Left "No branch selected."
-        )
- where
-  printResult (Left  e  ) = putStr e
-  printResult (Right msg) = putStr msg
+-- Lens
 
+focussedBranchesL :: Lens' State (L.List Name Branch)
+focussedBranchesL = lens
+  (\s -> case (^. focusL) s of
+    Local  -> (^. localBranchesL) s
+    Remote -> (^. remoteBranchesL) s
+  )
+  (\s bs -> case (^. focusL) s of
+    Local  -> (.~) localBranchesL bs s
+    Remote -> (.~) remoteBranchesL bs s
+  )
+
+localBranchesL :: Lens' State (L.List Name Branch)
+localBranchesL = lens localBranches (\s bs -> s { localBranches = bs })
+
+remoteBranchesL :: Lens' State (L.List Name Branch)
+remoteBranchesL = lens remoteBranches (\s bs -> s { remoteBranches = bs })
+
+focusL :: Lens' State Name
+focusL = lens focus (\s f -> s { focus = f })
