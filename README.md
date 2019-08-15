@@ -2,7 +2,7 @@
 
 A git checkout command-line tool
 
-![screenshot](./screenshot.png)
+![screenshot](https://raw.githubusercontent.com/andys8/git-brunch/master/screenshot.png)
 
 ## Install from source
 
