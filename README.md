@@ -6,6 +6,10 @@ A git checkout command-line tool
 
 ## Installation
 
+### Binary
+
+Download from [releases](https://github.com/andys8/git-brunch/releases) and add to `PATH`.
+
 ### Stack
 
 ```sh
