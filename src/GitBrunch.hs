@@ -70,6 +70,7 @@ app = M.App { M.appDraw         = appDraw
             , M.appAttrMap      = const attributeMap
             }
 
+
 appDraw :: State -> [Widget Name]
 appDraw state =
   [ C.vCenter $ padAll 1 $ vBox
@@ -101,9 +102,12 @@ drawBranchList hasFocus list =
   title Remote = map toUpper "remote"
   drawTitle = withAttr "bold" . str . title . L.listName
 
+
 listDrawElement :: Show a => Bool -> a -> Widget Name
 listDrawElement selected a = padLeft (T.Pad 1) $ padRight T.Max $ str (show a)
 
+
+drawInstruction :: String -> String -> Widget n
 drawInstruction keys action =
   C.hCenter
     $   str "Press "
@@ -111,6 +115,7 @@ drawInstruction keys action =
     <+> str " to "
     <+> withAttr "bold" (str action)
     <+> str "."
+
 
 appHandleEvent :: State -> T.BrickEvent Name e -> T.EventM Name (T.Next State)
 appHandleEvent state (T.VtyEvent e) =
@@ -130,6 +135,7 @@ appHandleEvent state (T.VtyEvent e) =
         event                    -> navigate state event
 appHandleEvent state _ = M.continue state
 
+
 navigate :: State -> V.Event -> T.EventM Name (T.Next State)
 navigate state event = do
   let update = L.handleListEventVi L.handleListEvent
@@ -146,6 +152,7 @@ attributeMap = A.attrMap
   , (A.attrName "key", V.withStyle (V.brightYellow `on` V.black) V.bold)
   , (A.attrName "bold"        , V.withStyle (fg V.white) V.bold)
   ]
+
 
 initialState :: [Branch] -> State
 initialState branches = State
@@ -177,11 +184,14 @@ focussedBranchesL = lens
     Remote -> (.~) remoteBranchesL bs s
   )
 
+
 localBranchesL :: Lens' State (L.List Name Branch)
 localBranchesL = lens localBranches (\s bs -> s { localBranches = bs })
 
+
 remoteBranchesL :: Lens' State (L.List Name Branch)
 remoteBranchesL = lens remoteBranches (\s bs -> s { remoteBranches = bs })
+
 
 focusL :: Lens' State Name
 focusL = lens focus (\s f -> s { focus = f })
