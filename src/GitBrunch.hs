@@ -1,9 +1,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 module GitBrunch where
 
+
 import           Control.Monad                            ( void )
 import           Data.Maybe                               ( fromMaybe )
 import           Data.Monoid
+import           Debug.Trace
 import qualified Graphics.Vty                  as V
 import           Lens.Micro                               ( (^.) )
 
@@ -20,6 +22,7 @@ import qualified Brick.Widgets.Center          as C
 import           Brick.Widgets.Core                       ( hLimit
                                                           , str
                                                           , vBox
+                                                          , hBox
                                                           , vLimit
                                                           , withAttr
                                                           , withBorderStyle
@@ -30,19 +33,26 @@ import qualified Brick.Widgets.List            as L
 import qualified Data.Vector                   as Vec
 import           Git
 import           Data.Maybe                    as Maybe
+import           Data.List
+import           Data.Char
 
 data Name = Local | Remote deriving (Ord, Eq, Show)
 data State = State { localBranches :: L.List Name Branch, remoteBranches :: L.List Name Branch }
 
 drawUI :: State -> [Widget Name]
 drawUI state =
-  [ C.vCenter $ padAll 1 $ vBox
-      (C.hCenter branchBox1 : C.hCenter branchBox2 : str " " : instructions)
+  [ C.vCenter
+      $ padAll 1
+      $ vBox
+          [ hBox [C.hCenter branchBox1, C.hCenter branchBox2]
+          , str " "
+          , instructions
+          ]
   ]
  where
-  branchBox1 = drawBranchList $ localBranches state
-  branchBox2 = drawBranchList $ remoteBranches state
-  instructions =
+  branchBox1   = drawBranchList $ localBranches state
+  branchBox2   = drawBranchList $ remoteBranches state
+  instructions = vBox
     [ drawInstruction "HJKL/arrows" "navigate"
     , drawInstruction "Enter"       "checkout"
     , drawInstruction "Esc/Q"       "exit"
@@ -51,9 +61,16 @@ drawUI state =
 drawBranchList :: Show a => L.List Name a -> Widget Name
 drawBranchList list =
   withBorderStyle BS.unicodeBold
-    $ B.borderWithLabel (str "Branch")
+    $ B.borderWithLabel (str (title (L.listName list)))
     $ hLimit 100
-    $ L.renderList listDrawElement True list
+    $ L.renderList listDrawElement hasFocus list
+ where
+  hasFocus = L.listName list == Local
+  title Local  = map toUpper "local"
+  title Remote = map toUpper "remote"
+
+listDrawElement :: Show a => Bool -> a -> Widget Name
+listDrawElement selected a = C.hCenter $ str (show a)
 
 drawInstruction :: String -> String -> Widget n
 drawInstruction keys action =
@@ -78,8 +95,6 @@ appEvent state (T.VtyEvent e) = case e of
 appEvent state _ = M.continue state
 
 
-listDrawElement :: Show a => Bool -> a -> Widget Name
-listDrawElement selected a = C.hCenter $ str (show a)
 
 
 attributeMap :: A.AttrMap
@@ -93,9 +108,13 @@ attributeMap = A.attrMap
 
 initialState :: [Branch] -> State
 initialState branches = State
-  { localBranches  = L.list Local (Vec.fromList branches) 1
-  , remoteBranches = L.list Remote (Vec.fromList branches) 1
+  { localBranches  = L.list Local (Vec.fromList local) 1
+  , remoteBranches = L.list Remote (Vec.fromList remote) 1
   }
+ where
+  (remote, local) = partition isRemote branches
+  isRemote (BranchRemote _ _) = True
+  isRemote _                  = False
 
 theApp :: M.App State e Name
 theApp = M.App { M.appDraw         = drawUI
