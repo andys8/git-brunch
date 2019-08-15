@@ -1,4 +1,4 @@
-# git-brunch
+# git-brunch [![Build Status](https://travis-ci.org/andys8/git-brunch.svg?branch=master)](https://travis-ci.org/andys8/git-brunch)
 
 A git checkout command-line tool
 
