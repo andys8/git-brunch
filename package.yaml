@@ -35,11 +35,9 @@ executables:
     source-dirs:         app
     ghc-options:
     - -threaded
-    - -static
+    - -O2
     - -rtsopts
     - -with-rtsopts=-N
-    cc-options: -static
-    ld-options: -static -pthread
     dependencies:
     - git-brunch
 
