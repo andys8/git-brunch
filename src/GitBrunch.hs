@@ -149,7 +149,6 @@ stateToBranch State { focus, localBranches, remoteBranches } = snd
     Remote -> remoteBranches
 
 
-
 main :: IO ()
 main = do
   branches   <- Git.listBranches

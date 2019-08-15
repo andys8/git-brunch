@@ -25,12 +25,18 @@ listBranches = toBranches <$> execGitBranch
  where
   execGitBranch = readProcess
     "git"
-    ["branch", "--all", "--sort=-committerdate", "--color=never"]
+    [ "branch"
+    , "--list"
+    , "--all"
+    , "--sort=-committerdate"
+    , "--no-column"
+    , "--no-color"
+    ]
     []
 
 
 toBranches :: String -> [Branch]
-toBranches input = toBranch <$> lines input
+toBranches input = filter (not . isHead) $ toBranch <$> lines input
 
 toBranch :: String -> Branch
 toBranch line = toBranch $ head $ words $ drop 2 line
@@ -42,20 +48,26 @@ toBranch line = toBranch $ head $ words $ drop 2 line
       Just rest -> parseRemoteBranch rest
       Nothing   -> BranchLocal name
 
+
 checkout :: Branch -> IO (Either String String)
-checkout branch =
-  let
-    execGitCheckout name = readProcessWithExitCode "git" ["checkout", name] []
-    toEither (ExitSuccess  , stdout, stderr) = Right $ dropWhile isSpace stdout
-    toEither (ExitFailure _, stdout, stderr) = Left $ dropWhile isSpace stderr
-  in
-    case branch of
-      BranchCurrent name  -> pure $ Left $ "Already on branch " ++ name
-      BranchLocal   name  -> toEither <$> execGitCheckout name
-      BranchRemote _ name -> toEither <$> execGitCheckout name
+checkout branch = toEither <$> execGitCheckout (branchName branch)
+ where
+  execGitCheckout name = readProcessWithExitCode "git" ["checkout", name] []
+  toEither (ExitSuccess  , stdout, stderr) = Right $ dropWhile isSpace stdout
+  toEither (ExitFailure _, stdout, stderr) = Left $ dropWhile isSpace stderr
 
 
 parseRemoteBranch :: String -> Branch
 parseRemoteBranch str = BranchRemote remote branchName
   where (remote, _ : branchName) = span ('/' /=) str
 
+--- Helper
+
+branchName :: Branch -> String
+branchName (BranchCurrent n ) = n
+branchName (BranchLocal   n ) = n
+branchName (BranchRemote _ n) = n
+
+
+isHead :: Branch -> Bool
+isHead = (== "HEAD") . branchName
