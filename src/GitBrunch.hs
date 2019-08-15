@@ -120,8 +120,8 @@ drawInstruction keys action =
 appHandleEvent :: State -> T.BrickEvent Name e -> T.EventM Name (T.Next State)
 appHandleEvent state (T.VtyEvent e) =
   let checkoutBranch  = M.halt state
-      focusLocal      = M.continue $ focusLocalBranches state
-      focusRemote     = M.continue $ focusRemoteBranches state
+      focusLocal      = M.continue $ focusBranches Local state
+      focusRemote     = M.continue $ focusBranches Remote state
       deleteSelection = focussedBranchesL %~ L.listClear
       quit            = M.halt $ deleteSelection state
   in  case e of
@@ -136,19 +136,15 @@ appHandleEvent state (T.VtyEvent e) =
 appHandleEvent state _ = M.continue state
 
 
-focusRemoteBranches :: State -> State
-focusRemoteBranches state = if state ^. focusL == Remote
+focusBranches :: Name -> State -> State
+focusBranches target state = if state ^. focusL == target
   then state
-  else
-    let index = fromMaybe 0 $ L.listSelected (state ^. localBranchesL)
-    in  state & remoteBranchesL %~ L.listMoveTo index & focusL .~ Remote
-
-focusLocalBranches :: State -> State
-focusLocalBranches state = if state ^. focusL == Local
-  then state
-  else
-    let index = fromMaybe 0 $ L.listSelected (state ^. remoteBranchesL)
-    in  state & localBranchesL %~ L.listMoveTo index & focusL .~ Local
+  else state & toL %~ L.listMoveTo selectedIndex & focusL .~ target
+ where
+  selectedIndex = fromMaybe 0 $ L.listSelected (state ^. fromL)
+  (fromL, toL)  = case target of
+    Local  -> (remoteBranchesL, localBranchesL)
+    Remote -> (localBranchesL, remoteBranchesL)
 
 
 navigate :: State -> V.Event -> T.EventM Name (T.Next State)
