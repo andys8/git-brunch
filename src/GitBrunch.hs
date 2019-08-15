@@ -32,22 +32,23 @@ import           Git
 import           Data.Maybe                    as Maybe
 
 
-drawUI :: (Show a) => L.List () a -> [Widget ()]
-drawUI l =
-  [ C.vCenter $ padAll 1 $ vBox
-      (C.hCenter branchBox : str " " : instructions)
-  ]
+drawUI :: Show a => L.List () a -> [Widget ()]
+drawUI list =
+  [C.vCenter $ padAll 1 $ vBox (C.hCenter branchBox : str " " : instructions)]
  where
-  branchBox =
-    withBorderStyle BS.unicodeBold
-      $ B.borderWithLabel (str "Branch")
-      $ hLimit 100
-      $ L.renderList listDrawElement True l
+  branchBox = drawBranchList list
   instructions =
     [ drawInstruction "HJKL/arrows" "navigate"
     , drawInstruction "Enter"       "checkout"
     , drawInstruction "Esc/Q"       "exit"
     ]
+
+drawBranchList :: Show a => L.List () a -> Widget ()
+drawBranchList list =
+  withBorderStyle BS.unicodeBold
+    $ B.borderWithLabel (str "Branch")
+    $ hLimit 100
+    $ L.renderList listDrawElement True list
 
 drawInstruction :: String -> String -> Widget ()
 drawInstruction keys action =
@@ -68,6 +69,7 @@ appEvent l (T.VtyEvent e) = case e of
   V.EvKey V.KEnter      [] -> M.halt l
   ev -> M.continue =<< L.handleListEventVi L.handleListEvent ev l
 appEvent l _ = M.continue l
+
 
 listDrawElement :: Show a => Bool -> a -> Widget ()
 listDrawElement selected a = C.hCenter $ str (show a)
