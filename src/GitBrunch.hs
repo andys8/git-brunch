@@ -31,12 +31,13 @@ import qualified Data.Vector                   as Vec
 import           Git
 import           Data.Maybe                    as Maybe
 
+newtype State = State { localBranches :: L.List () Branch }
 
-drawUI :: Show a => L.List () a -> [Widget ()]
-drawUI list =
+drawUI :: State -> [Widget ()]
+drawUI state =
   [C.vCenter $ padAll 1 $ vBox (C.hCenter branchBox : str " " : instructions)]
  where
-  branchBox = drawBranchList list
+  branchBox = drawBranchList $ localBranches state
   instructions =
     [ drawInstruction "HJKL/arrows" "navigate"
     , drawInstruction "Enter"       "checkout"
@@ -59,16 +60,18 @@ drawInstruction keys action =
     <+> withAttr "bold" (str action)
     <+> str "."
 
-appEvent
-  :: L.List () Branch
-  -> T.BrickEvent () e
-  -> T.EventM () (T.Next (L.List () Branch))
-appEvent l (T.VtyEvent e) = case e of
-  V.EvKey V.KEsc        [] -> M.halt $ L.listClear l
-  V.EvKey (V.KChar 'q') [] -> M.halt $ L.listClear l
-  V.EvKey V.KEnter      [] -> M.halt l
-  ev -> M.continue =<< L.handleListEventVi L.handleListEvent ev l
-appEvent l _ = M.continue l
+appEvent :: State -> T.BrickEvent () e -> T.EventM () (T.Next State)
+appEvent state (T.VtyEvent e) = case e of
+  V.EvKey V.KEsc [] ->
+    M.halt $ state { localBranches = L.listClear $ localBranches state }
+  V.EvKey (V.KChar 'q') [] ->
+    M.halt $ state { localBranches = L.listClear $ localBranches state }
+
+  V.EvKey V.KEnter [] -> M.halt state
+  ev ->
+    (M.continue . (\l -> state { localBranches = l }))
+      =<< L.handleListEventVi L.handleListEvent ev (localBranches state)
+appEvent state _ = M.continue state
 
 
 listDrawElement :: Show a => Bool -> a -> Widget ()
@@ -84,10 +87,11 @@ attributeMap = A.attrMap
   , (A.attrName "bold" , V.withStyle (fg V.white) V.bold)
   ]
 
-initialState :: [Branch] -> L.List () Branch
-initialState branches = L.list () (Vec.fromList branches) 1
+initialState :: [Branch] -> State
+initialState branches =
+  State { localBranches = L.list () (Vec.fromList branches) 1 }
 
-theApp :: M.App (L.List () Branch) e ()
+theApp :: M.App State e ()
 theApp = M.App { M.appDraw         = drawUI
                , M.appChooseCursor = M.showFirstCursor
                , M.appHandleEvent  = appEvent
@@ -99,7 +103,7 @@ main :: IO ()
 main = do
   branches   <- Git.listBranches
   finalState <- M.defaultMain theApp (initialState branches)
-  let branch = snd <$> L.listSelectedElement finalState
+  let branch = snd <$> L.listSelectedElement (localBranches finalState)
   printResult
     =<< (case branch of
           Just branch -> Git.checkout branch
