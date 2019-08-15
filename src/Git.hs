@@ -17,7 +17,7 @@ data Branch = BranchLocal String
 
 instance (Show Branch) where
   show (BranchLocal   n ) = n
-  show (BranchCurrent n ) = n
+  show (BranchCurrent n ) = n <> "*"
   show (BranchRemote o n) = o <> "/" <> n
 
 listBranches :: IO [Branch]

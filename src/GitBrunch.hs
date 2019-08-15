@@ -24,7 +24,9 @@ import           Brick.Widgets.Core                       ( hLimit
                                                           , vBox
                                                           , hBox
                                                           , vLimit
+                                                          , padLeft
                                                           , withAttr
+                                                          , padRight
                                                           , withBorderStyle
                                                           , (<+>)
                                                           , padAll
@@ -61,8 +63,8 @@ drawUI state =
 drawBranchList :: Show a => L.List Name a -> Widget Name
 drawBranchList list =
   withBorderStyle BS.unicodeBold
-    $ B.borderWithLabel (str (title (L.listName list)))
-    $ hLimit 100
+    $ B.borderWithLabel (withAttr "bold" $ str (title (L.listName list)))
+    $ hLimit 80
     $ L.renderList listDrawElement hasFocus list
  where
   hasFocus = L.listName list == Local
@@ -70,9 +72,8 @@ drawBranchList list =
   title Remote = map toUpper "remote"
 
 listDrawElement :: Show a => Bool -> a -> Widget Name
-listDrawElement selected a = C.hCenter $ str (show a)
+listDrawElement selected a = padLeft (T.Pad 1) $ padRight T.Max $ str (show a)
 
-drawInstruction :: String -> String -> Widget n
 drawInstruction keys action =
   C.hCenter
     $   str "Press "
@@ -95,15 +96,14 @@ appEvent state (T.VtyEvent e) = case e of
 appEvent state _ = M.continue state
 
 
-
-
 attributeMap :: A.AttrMap
 attributeMap = A.attrMap
   V.defAttr
-  [ (L.listAttr        , fg V.white)
-  , (L.listSelectedAttr, V.black `on` V.yellow)
+  [ (L.listAttr               , fg V.white)
+  , (L.listSelectedAttr       , fg V.white)
+  , (L.listSelectedFocusedAttr, V.black `on` V.yellow)
   , (A.attrName "key", V.withStyle (V.brightYellow `on` V.black) V.bold)
-  , (A.attrName "bold" , V.withStyle (fg V.white) V.bold)
+  , (A.attrName "bold"        , V.withStyle (fg V.white) V.bold)
   ]
 
 initialState :: [Branch] -> State
