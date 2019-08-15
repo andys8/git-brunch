@@ -47,7 +47,7 @@ import           Data.Char
 
 
 data Name = Local | Remote deriving (Ord, Eq, Show)
-data State = State { focus :: Name, localBranches :: L.List Name Branch, remoteBranches :: L.List Name Branch }
+data State = State { _focus :: Name, _localBranches :: L.List Name Branch, _remoteBranches :: L.List Name Branch }
 
 
 main :: IO ()
@@ -88,7 +88,7 @@ appDraw state =
   ]
  where
   toBranchList lens = state ^. lens & (\l -> drawBranchList (hasFocus l) l)
-  hasFocus = (focus state ==) . L.listName
+  hasFocus = (_focus state ==) . L.listName
 
 
 drawBranchList :: Show a => Bool -> L.List Name a -> Widget Name
@@ -120,8 +120,8 @@ drawInstruction keys action =
 appHandleEvent :: State -> T.BrickEvent Name e -> T.EventM Name (T.Next State)
 appHandleEvent state (T.VtyEvent e) =
   let checkoutBranch  = M.halt state
-      focusLocal      = M.continue $ state { focus = Local }
-      focusRemote     = M.continue $ state { focus = Remote }
+      focusLocal      = M.continue $ state { _focus = Local }
+      focusRemote     = M.continue $ state { _focus = Remote }
       deleteSelection = focussedBranchesL %~ L.listClear
       quit            = M.halt $ deleteSelection state
   in  case e of
@@ -156,9 +156,9 @@ attributeMap = A.attrMap
 
 initialState :: [Branch] -> State
 initialState branches = State
-  { focus          = Local
-  , localBranches  = L.list Local (Vec.fromList local) 1
-  , remoteBranches = L.list Remote (Vec.fromList remote) 1
+  { _focus          = Local
+  , _localBranches  = L.list Local (Vec.fromList local) 1
+  , _remoteBranches = L.list Remote (Vec.fromList remote) 1
   }
  where
   (remote, local) = partition isRemote branches
@@ -186,12 +186,12 @@ focussedBranchesL = lens
 
 
 localBranchesL :: Lens' State (L.List Name Branch)
-localBranchesL = lens localBranches (\s bs -> s { localBranches = bs })
+localBranchesL = lens _localBranches (\s bs -> s { _localBranches = bs })
 
 
 remoteBranchesL :: Lens' State (L.List Name Branch)
-remoteBranchesL = lens remoteBranches (\s bs -> s { remoteBranches = bs })
+remoteBranchesL = lens _remoteBranches (\s bs -> s { _remoteBranches = bs })
 
 
 focusL :: Lens' State Name
-focusL = lens focus (\s f -> s { focus = f })
+focusL = lens _focus (\s f -> s { _focus = f })
