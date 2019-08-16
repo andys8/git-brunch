@@ -8,6 +8,12 @@ A git checkout command-line tool
 
 Run `git-brunch` or `git brunch`.
 
+## Git alias (optional)
+
+```sh
+git config --global alias.b brunch
+```
+
 ## Installation
 
 ### Download binary
