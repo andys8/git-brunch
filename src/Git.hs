@@ -8,7 +8,6 @@ where
 import           System.Process
 import           Data.List
 import           Data.Char                                ( isSpace )
-import           Data.Either
 import           System.Exit
 
 data Branch = BranchLocal String
@@ -39,10 +38,10 @@ toBranches :: String -> [Branch]
 toBranches input = filter (not . isHead) $ toBranch <$> lines input
 
 toBranch :: String -> Branch
-toBranch line = toBranch $ head $ words $ drop 2 line
+toBranch line = toBranch' $ head $ words $ drop 2 line
  where
   isCurrent = "*" `isPrefixOf` line
-  toBranch name
+  toBranch' name
     | isCurrent = BranchCurrent name
     | otherwise = case stripPrefix "remotes/" name of
       Just rest -> parseRemoteBranch rest
@@ -53,13 +52,13 @@ checkout :: Branch -> IO (Either String String)
 checkout branch = toEither <$> execGitCheckout (branchName branch)
  where
   execGitCheckout name = readProcessWithExitCode "git" ["checkout", name] []
-  toEither (ExitSuccess  , stdout, stderr) = Right $ dropWhile isSpace stdout
-  toEither (ExitFailure _, stdout, stderr) = Left $ dropWhile isSpace stderr
+  toEither (ExitSuccess  , stdout, _     ) = Right $ dropWhile isSpace stdout
+  toEither (ExitFailure _, _     , stderr) = Left $ dropWhile isSpace stderr
 
 
 parseRemoteBranch :: String -> Branch
-parseRemoteBranch str = BranchRemote remote branchName
-  where (remote, _ : branchName) = span ('/' /=) str
+parseRemoteBranch str = BranchRemote remote name
+  where (remote, _ : name) = span ('/' /=) str
 
 --- Helper
 

@@ -28,6 +28,9 @@ dependencies:
 
 library:
   source-dirs: src
+  ghc-options:
+  - -Wall
+  - -Werror
 
 executables:
   git-brunch:

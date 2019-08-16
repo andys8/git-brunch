@@ -2,28 +2,20 @@
 {-# LANGUAGE RankNTypes #-}
 module GitBrunch where
 
-import           Control.Monad                            ( void )
 import           Data.Maybe                               ( fromMaybe )
-import           Data.Monoid
-import           Debug.Trace
 import qualified Graphics.Vty                  as V
 import           Lens.Micro                               ( (^.) -- view
                                                           , (.~) -- set
                                                           , (%~) -- over
                                                           , (&)
                                                           , Lens'
-                                                          , Lens
                                                           , lens
                                                           )
 
-import qualified Brick.AttrMap                 as A
 import qualified Brick.Main                    as M
 import           Brick.Types                              ( Widget )
 import           Brick.Themes                             ( themeToAttrMap )
 import qualified Brick.Types                   as T
-import           Brick.Util                               ( fg
-                                                          , on
-                                                          )
 import qualified Brick.Widgets.Border          as B
 import qualified Brick.Widgets.Border.Style    as BS
 import qualified Brick.Widgets.Center          as C
@@ -31,7 +23,6 @@ import           Brick.Widgets.Core                       ( hLimit
                                                           , str
                                                           , vBox
                                                           , hBox
-                                                          , vLimit
                                                           , padLeft
                                                           , withAttr
                                                           , padRight
@@ -41,7 +32,6 @@ import           Brick.Widgets.Core                       ( hLimit
                                                           )
 import qualified Brick.Widgets.List            as L
 import qualified Data.Vector                   as Vec
-import           Data.Maybe                    as Maybe
 import           Data.List
 import           Data.Char
 
@@ -57,12 +47,12 @@ main :: IO ()
 main = do
   branches   <- Git.listBranches
   finalState <- M.defaultMain app (initialState branches)
-  print =<< checkout (selectedBranch finalState)
+  printResult =<< checkoutBranch (selectedBranch finalState)
  where
-  print (Left  e  ) = putStr e
-  print (Right msg) = putStr msg
-  checkout (Just b) = Git.checkout b
-  checkout Nothing  = pure $ Left "No branch selected."
+  printResult (Left  err) = putStr err
+  printResult (Right msg) = putStr msg
+  checkoutBranch (Just b) = Git.checkout b
+  checkoutBranch Nothing  = pure $ Left "No branch selected."
 
 
 app :: M.App State e Name
@@ -90,7 +80,7 @@ appDraw state =
       ]
   ]
  where
-  toBranchList lens = state ^. lens & (\l -> drawBranchList (hasFocus l) l)
+  toBranchList lens' = state ^. lens' & (\l -> drawBranchList (hasFocus l) l)
   hasFocus = (_focus state ==) . L.listName
 
 
@@ -107,7 +97,7 @@ drawBranchList hasFocus list =
 
 
 drawListElement :: Bool -> Branch -> Widget Name
-drawListElement selected branch =
+drawListElement _ branch =
   padLeft (T.Pad 1) $ padRight T.Max $ highlight branch $ str $ show branch
  where
   highlight (BranchCurrent _) = withAttr "current"
@@ -181,15 +171,11 @@ selectedBranch state =
 -- Lens
 
 focussedBranchesL :: Lens' State (L.List Name Branch)
-focussedBranchesL = lens
-  (\s -> case (^. focusL) s of
-    Local  -> (^. localBranchesL) s
-    Remote -> (^. remoteBranchesL) s
-  )
-  (\s bs -> case (^. focusL) s of
-    Local  -> (.~) localBranchesL bs s
-    Remote -> (.~) remoteBranchesL bs s
-  )
+focussedBranchesL =
+  let branchLens s = case s ^. focusL of
+        Local  -> localBranchesL
+        Remote -> remoteBranchesL
+  in  lens (\s -> s ^. branchLens s) (\s bs -> (branchLens s .~ bs) s)
 
 
 localBranchesL :: Lens' State (L.List Name Branch)
