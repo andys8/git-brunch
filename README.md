@@ -4,26 +4,34 @@ A git checkout command-line tool
 
 ![screenshot](https://raw.githubusercontent.com/andys8/git-brunch/master/screenshot.png)
 
+## Usage
+
+Run `git-brunch` or `git brunch`.
+
 ## Installation
 
-### Binary
+### Download binary
 
 Download from [releases](https://github.com/andys8/git-brunch/releases) and add to `PATH`.
 
-### Stack
+### Install with `stack`
 
 ```sh
 stack install --resolver=lts-14 git-brunch
 ```
 
-### From source
+### Clone and install with `nix`
+
+```sh
+git clone https://github.com/andys8/git-brunch.git
+cd git-brunch
+nix-env -if default.nix
+```
+
+### Clone and install with `stack` from source
 
 ```sh
 git clone https://github.com/andys8/git-brunch.git
 cd git-brunch
 stack install
 ```
-
-## Usage
-
-Run `git-brunch` or `git brunch`.
