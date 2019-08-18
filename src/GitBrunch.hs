@@ -26,12 +26,12 @@ import           Brick.Widgets.Core                       ( hLimit
                                                           , str
                                                           , vBox
                                                           , hBox
+                                                          , padAll
                                                           , padLeft
-                                                          , withAttr
                                                           , padRight
+                                                          , withAttr
                                                           , withBorderStyle
                                                           , (<+>)
-                                                          , padAll
                                                           )
 import qualified Brick.Widgets.List            as L
 import qualified Data.Vector                   as Vec
@@ -75,16 +75,17 @@ appDraw state =
         , C.hCenter $ toBranchList remoteBranchesL
         ]
       , str " "
-      , vBox
-        [ drawInstruction "HJKL/arrows" "navigate"
-        , drawInstruction "Enter"       "checkout"
-        , drawInstruction "Esc/Q"       "exit"
-        ]
+      , instructions
       ]
   ]
  where
   toBranchList lens' = state ^. lens' & (\l -> drawBranchList (hasFocus l) l)
-  hasFocus = (_focus state ==) . L.listName
+  hasFocus     = (_focus state ==) . L.listName
+  instructions = C.hCenter $ hLimit 100 $ hBox
+    [ drawInstruction "HJKL/arrows" "navigate"
+    , drawInstruction "Enter"       "checkout"
+    , drawInstruction "Esc/Q"       "exit"
+    ]
 
 
 drawBranchList :: Bool -> L.List Name Branch -> Widget Name
@@ -109,12 +110,10 @@ drawListElement _ branch =
 
 drawInstruction :: String -> String -> Widget n
 drawInstruction keys action =
-  C.hCenter
-    $   str "Press "
-    <+> withAttr "key" (str keys)
+  withAttr "key" (str keys)
     <+> str " to "
     <+> withAttr "bold" (str action)
-    <+> str "."
+    &   C.hCenter
 
 
 appHandleEvent :: State -> T.BrickEvent Name e -> T.EventM Name (T.Next State)

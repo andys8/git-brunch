@@ -14,10 +14,12 @@ data Branch = BranchLocal String
             | BranchCurrent String
             | BranchRemote String String
 
+
 instance (Show Branch) where
   show (BranchLocal   n ) = n
   show (BranchCurrent n ) = n <> "*"
   show (BranchRemote o n) = o <> "/" <> n
+
 
 listBranches :: IO [Branch]
 listBranches = toBranches <$> execGitBranch
@@ -36,6 +38,7 @@ listBranches = toBranches <$> execGitBranch
 
 toBranches :: String -> [Branch]
 toBranches input = filter (not . isHead) $ toBranch <$> lines input
+
 
 toBranch :: String -> Branch
 toBranch line = toBranch' $ head $ words $ drop 2 line
@@ -59,6 +62,7 @@ checkout branch = toEither <$> execGitCheckout (branchName branch)
 parseRemoteBranch :: String -> Branch
 parseRemoteBranch str = BranchRemote remote name
   where (remote, _ : name) = span ('/' /=) str
+
 
 --- Helper
 
