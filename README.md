@@ -31,7 +31,7 @@ stack install --resolver=lts-14 git-brunch
 ```sh
 git clone https://github.com/andys8/git-brunch.git
 cd git-brunch
-nix-env -if default.nix
+nix-env -if .
 ```
 
 ### Clone and install with `stack` from source
