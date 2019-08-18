@@ -1,6 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
-module GitBrunch where
+module GitBrunch
+  ( main
+  )
+where
 
 import           Data.Maybe                               ( fromMaybe )
 import qualified Graphics.Vty                  as V

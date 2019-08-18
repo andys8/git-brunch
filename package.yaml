@@ -1,56 +1,57 @@
-name:                git-brunch
-version:             1.0.2.0
-github:              "andys8/git-brunch"
-license:             BSD3
-author:              "andys8"
-maintainer:          "andys8@users.noreply.github.com"
-copyright:           "2019 andys8"
+name: git-brunch
+version: 1.0.3.0
+github: "andys8/git-brunch"
+license: BSD3
+author: "andys8"
+maintainer: "andys8@users.noreply.github.com"
+copyright: "2019 andys8"
 
 extra-source-files:
-- README.md
+  - README.md
 
 # Metadata used when publishing your package
-# synopsis:            Short description of your package
-# category:            Web
+synopsis: git checkout command-line tool
+category: Git
 
 # To avoid duplicated efforts in documentation and dealing with the
 # complications of embedding Haddock markup inside cabal files, it is
 # common to point users to the README.md file.
-description:         Please see the README on GitHub at <https://github.com/andys8/git-brunch#readme>
+description: Please see the README on GitHub at <https://github.com/andys8/git-brunch#readme>
 
 dependencies:
-- base >= 4.7 && < 5
-- brick
-- microlens
-- process
-- vector
-- vty
+  - base >= 4.7 && < 5
+  - brick
+  - microlens
+  - process
+  - vector
+  - vty
 
-library:
-  source-dirs: src
-  ghc-options:
-  - -Wall
-  - -Werror
+internal-libraries:
+  git-brunch-lib:
+    source-dirs: src
+    ghc-options:
+      - -Wall
 
 executables:
   git-brunch:
-    main:                Main.hs
-    source-dirs:         app
+    main: Main.hs
+    source-dirs: app
+    generated-other-modules:
+      - Paths_git_brunch
     ghc-options:
-    - -threaded
-    - -O2
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - git-brunch
+      - git-brunch-lib
 
 tests:
   git-brunch-test:
-    main:                Spec.hs
-    source-dirs:         test
+    main: Spec.hs
+    source-dirs: test
     ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
     dependencies:
-    - git-brunch
+      - git-brunch-lib
