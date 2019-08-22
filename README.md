@@ -20,24 +20,34 @@ git config --global alias.b brunch
 
 Download from [releases](https://github.com/andys8/git-brunch/releases), rename to `git-brunch` and add to `PATH`.
 
-### Install with `stack`
+### [Stack](https://haskellstack.org)
+
+#### Install
 
 ```sh
-stack install --resolver=lts-14 git-brunch
+stack install git-brunch # --resolver=lts-14
 ```
 
-### Clone and install with `nix`
-
-```sh
-git clone https://github.com/andys8/git-brunch.git
-cd git-brunch
-nix-env -if .
-```
-
-### Clone and install with `stack` from source
+#### Clone and install from source
 
 ```sh
 git clone https://github.com/andys8/git-brunch.git
 cd git-brunch
 stack install
+```
+
+### [Nix](https://nixos.org/nix)
+
+#### Install
+
+```sh
+nix-env -f "<nixpkgs>" -iA haskellPackages.git-brunch
+```
+
+#### Clone and install with `nix`
+
+```sh
+git clone https://github.com/andys8/git-brunch.git
+cd git-brunch
+nix-env -if .
 ```
