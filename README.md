@@ -18,7 +18,10 @@ git config --global alias.b brunch
 
 ### Download binary
 
-Download from [releases](https://github.com/andys8/git-brunch/releases), rename to `git-brunch` and add to `PATH`.
+1. Download from [releases](https://github.com/andys8/git-brunch/releases)
+1. Rename to `git-brunch`
+1. `chmod +x git-brunch`
+1. Add to `PATH`
 
 ### [Stack](https://haskellstack.org)
 
