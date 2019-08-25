@@ -32,16 +32,32 @@ internal-libraries:
     ghc-options:
       - -Wall
 
+flags:
+  static:
+    manual: true
+    default: false
+
 executables:
   git-brunch:
     main: Main.hs
     source-dirs: app
     generated-other-modules:
       - Paths_git_brunch
-    ghc-options:
-      - -threaded
-      - -rtsopts
-      - -with-rtsopts=-N
+    when:
+      - condition: flag(static)
+        then:
+          cc-options: -static
+          ld-options: -static -pthread
+          ghc-options:
+            - -static
+            - -threaded
+            - -rtsopts
+            - -with-rtsopts=-N
+        else:
+          ghc-options:
+            - -threaded
+            - -rtsopts
+            - -with-rtsopts=-N
     dependencies:
       - git-brunch-lib
 

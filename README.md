@@ -54,3 +54,17 @@ git clone https://github.com/andys8/git-brunch.git
 cd git-brunch
 nix-env -if .
 ```
+
+## Development
+
+### Run tests
+
+```shell
+stack test --fast --file-watch
+```
+
+### Build statically linked
+
+```shell
+stack install --flag git-brunch:static
+```
