@@ -55,3 +55,4 @@ tests:
       - -with-rtsopts=-N
     dependencies:
       - git-brunch-lib
+      - hspec
