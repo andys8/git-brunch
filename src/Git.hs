@@ -1,6 +1,7 @@
 module Git
   ( listBranches
   , checkout
+  , toBranches
   , Branch(..)
   )
 where
@@ -13,6 +14,7 @@ import           System.Exit
 data Branch = BranchLocal String
             | BranchCurrent String
             | BranchRemote String String
+            deriving Eq
 
 
 instance (Show Branch) where
@@ -37,18 +39,17 @@ listBranches = toBranches <$> execGitBranch
 
 
 toBranches :: String -> [Branch]
-toBranches input = filter (not . isHead) $ toBranch <$> lines input
+toBranches input = toBranch <$> filter (not . isHead) (lines input)
 
 
 toBranch :: String -> Branch
-toBranch line = toBranch' $ head $ words $ drop 2 line
+toBranch line = toBranch' $ words $ dropWhile isSpace line
  where
-  isCurrent = "*" `isPrefixOf` line
-  toBranch' name
-    | isCurrent = BranchCurrent name
-    | otherwise = case stripPrefix "remotes/" name of
-      Just rest -> parseRemoteBranch rest
-      Nothing   -> BranchLocal name
+  toBranch' ("*" : name : _) = BranchCurrent name
+  toBranch' (name       : _) = case stripPrefix "remotes/" name of
+    Just rest -> parseRemoteBranch rest
+    Nothing   -> BranchLocal name
+  toBranch' [] = error "empty branch name"
 
 
 checkout :: Branch -> IO (Either String String)
@@ -72,5 +73,5 @@ branchName (BranchLocal   n ) = n
 branchName (BranchRemote _ n) = n
 
 
-isHead :: Branch -> Bool
-isHead = (== "HEAD") . branchName
+isHead :: String -> Bool
+isHead name = isInfixOf "HEAD" name
