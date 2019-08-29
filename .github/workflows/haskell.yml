@@ -1,0 +1,22 @@
+name: Haskell CI
+
+on: [push]
+
+jobs:
+  build:
+    name: Test on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macOS-latest]
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Install dependencies
+      run: cabal install --only-dependencies --enable-tests
+    - name: Build
+      run: |
+        cabal configure --enable-tests
+        cabal build
+    - name: Run tests
+      run: cabal test
