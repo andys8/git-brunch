@@ -5,41 +5,41 @@ module GitBrunch
   )
 where
 
-import           Data.Maybe                               ( fromMaybe )
+import           Data.Maybe                     ( fromMaybe )
 import qualified Graphics.Vty                  as V
-import           Lens.Micro                               ( (^.) -- view
-                                                          , (.~) -- set
-                                                          , (%~) -- over
-                                                          , (&)
-                                                          , Lens'
-                                                          , lens
-                                                          )
+import           Lens.Micro                     ( (^.) -- view
+                                                , (.~) -- set
+                                                , (%~) -- over
+                                                , (&)
+                                                , Lens'
+                                                , lens
+                                                )
 
 import qualified Brick.Main                    as M
-import           Brick.Types                              ( Widget )
-import           Brick.Themes                             ( themeToAttrMap )
+import           Brick.Types                    ( Widget )
+import           Brick.Themes                   ( themeToAttrMap )
 import qualified Brick.Types                   as T
 import qualified Brick.Widgets.Border          as B
 import qualified Brick.Widgets.Border.Style    as BS
 import qualified Brick.Widgets.Center          as C
-import           Brick.Widgets.Core                       ( hLimit
-                                                          , str
-                                                          , vBox
-                                                          , hBox
-                                                          , padAll
-                                                          , padLeft
-                                                          , padRight
-                                                          , withAttr
-                                                          , withBorderStyle
-                                                          , (<+>)
-                                                          )
+import           Brick.Widgets.Core             ( hLimit
+                                                , str
+                                                , vBox
+                                                , hBox
+                                                , padAll
+                                                , padLeft
+                                                , padRight
+                                                , withAttr
+                                                , withBorderStyle
+                                                , (<+>)
+                                                )
 import qualified Brick.Widgets.List            as L
 import qualified Data.Vector                   as Vec
 import           Data.List
 import           Data.Char
 
 import           Git
-import           Theme                                    ( theme )
+import           Theme                          ( theme )
 
 
 data Name = Local | Remote deriving (Ord, Eq, Show)
@@ -52,7 +52,7 @@ main = do
   finalState <- M.defaultMain app (initialState branches)
   printResult =<< checkoutBranch (selectedBranch finalState)
  where
-  printResult (Left  err) = putStr err
+  printResult (Left  err) = putStrLn err
   printResult (Right msg) = putStr msg
   checkoutBranch (Just b) = Git.checkout b
   checkoutBranch Nothing  = pure $ Left "No branch selected."

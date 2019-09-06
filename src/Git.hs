@@ -8,7 +8,7 @@ where
 
 import           System.Process
 import           Data.List
-import           Data.Char                                ( isSpace )
+import           Data.Char                      ( isSpace )
 import           System.Exit
 
 data Branch = BranchLocal String
@@ -74,4 +74,4 @@ branchName (BranchRemote _ n) = n
 
 
 isHead :: String -> Bool
-isHead name = isInfixOf "HEAD" name
+isHead = isInfixOf "HEAD"
