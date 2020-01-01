@@ -28,7 +28,7 @@ git config --global alias.b brunch
 #### Install
 
 ```sh
-stack install git-brunch # --resolver=lts-14
+stack install git-brunch # --resolver=lts-14.16
 ```
 
 #### Clone and install from source
