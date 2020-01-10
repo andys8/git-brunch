@@ -57,6 +57,12 @@ nix-env -if .
 
 ## Development
 
+### Run application
+
+```shell
+./run.sh
+```
+
 ### Run tests
 
 ```shell
