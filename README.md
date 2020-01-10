@@ -1,6 +1,6 @@
 # git-brunch [![Build Status](https://travis-ci.org/andys8/git-brunch.svg?branch=master)](https://travis-ci.org/andys8/git-brunch)
 
-A git checkout command-line tool
+A git checkout and rebase command-line tool
 
 ![screenshot](https://raw.githubusercontent.com/andys8/git-brunch/master/screenshot.png)
 

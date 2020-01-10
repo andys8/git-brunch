@@ -1,6 +1,7 @@
 module Git
   ( listBranches
   , checkout
+  , rebaseInteractive
   , toBranches
   , Branch(..)
   )
@@ -52,12 +53,17 @@ toBranch line = toBranch' $ words $ dropWhile isSpace line
   toBranch' [] = error "empty branch name"
 
 
-checkout :: Branch -> IO (Either String String)
-checkout branch = toEither <$> execGitCheckout (branchName branch)
- where
-  execGitCheckout name = readProcessWithExitCode "git" ["checkout", name] []
-  toEither (ExitSuccess  , stdout, _     ) = Right $ dropWhile isSpace stdout
-  toEither (ExitFailure _, _     , stderr) = Left $ dropWhile isSpace stderr
+checkout :: Branch -> IO ExitCode
+checkout branch = spawnGit ["checkout", branchName branch]
+
+
+rebaseInteractive :: Branch -> IO ExitCode
+rebaseInteractive branch =
+  spawnGit ["rebase", "--interactive", "--autostash", branchName branch]
+
+
+spawnGit :: [String] -> IO ExitCode
+spawnGit args = waitForProcess =<< spawnProcess "git" args
 
 
 parseRemoteBranch :: String -> Branch

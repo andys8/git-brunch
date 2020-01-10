@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE LambdaCase #-}
 module GitBrunch
   ( main
   )
@@ -37,25 +38,33 @@ import qualified Brick.Widgets.List            as L
 import qualified Data.Vector                   as Vec
 import           Data.List
 import           Data.Char
+import           Control.Monad
+import           System.Exit
 
 import           Git
 import           Theme                          ( theme )
 
 
+data State = State { _focus :: Name, _gitCommand :: GitCommand,  _localBranches :: L.List Name Branch, _remoteBranches :: L.List Name Branch }
 data Name = Local | Remote deriving (Ord, Eq, Show)
-data State = State { _focus :: Name, _localBranches :: L.List Name Branch, _remoteBranches :: L.List Name Branch }
+data GitCommand = GitRebase | GitCheckout deriving (Ord, Eq)
 
+instance (Show GitCommand) where
+  show GitCheckout = "checkout"
+  show GitRebase   = "rebase"
 
-main :: IO ()
+main :: IO a
 main = do
-  branches   <- Git.listBranches
-  finalState <- M.defaultMain app (initialState branches)
-  printResult =<< checkoutBranch (selectedBranch finalState)
- where
-  printResult (Left  err) = putStrLn err
-  printResult (Right msg) = putStr msg
-  checkoutBranch (Just b) = Git.checkout b
-  checkoutBranch Nothing  = pure $ Left "No branch selected."
+  branches <- Git.listBranches
+  state    <- M.defaultMain app $ initialState branches
+  let gitCommand = _gitCommand state
+  let branch     = selectedBranch state
+  let runGit = \case
+        GitCheckout -> Git.checkout
+        GitRebase   -> Git.rebaseInteractive
+  exitCode <- maybe (die "No branch selected.") (runGit gitCommand) branch
+  when (exitCode /= ExitSuccess) $ die ("Failed to " ++ show gitCommand ++ ".")
+  exitWith exitCode
 
 
 app :: M.App State e Name
@@ -82,9 +91,10 @@ appDraw state =
   toBranchList lens' = state ^. lens' & (\l -> drawBranchList (hasFocus l) l)
   hasFocus     = (_focus state ==) . L.listName
   instructions = C.hCenter $ hLimit 100 $ hBox
-    [ drawInstruction "HJKL/arrows" "navigate"
-    , drawInstruction "Enter"       "checkout"
-    , drawInstruction "Esc/Q"       "exit"
+    [ drawInstruction "HJKL"  "navigate"
+    , drawInstruction "Enter" "checkout"
+    , drawInstruction "R"     "rebase"
+    , drawInstruction "Esc/Q" "exit"
     ]
 
 
@@ -118,7 +128,8 @@ drawInstruction keys action =
 
 appHandleEvent :: State -> T.BrickEvent Name e -> T.EventM Name (T.Next State)
 appHandleEvent state (T.VtyEvent e) =
-  let checkoutBranch  = M.halt state
+  let endWithCheckout = M.halt $ state { _gitCommand = GitCheckout }
+      endWithRebase   = M.halt $ state { _gitCommand = GitRebase }
       focusLocal      = M.continue $ focusBranches Local state
       focusRemote     = M.continue $ focusBranches Remote state
       deleteSelection = focussedBranchesL %~ L.listClear
@@ -126,12 +137,14 @@ appHandleEvent state (T.VtyEvent e) =
   in  case e of
         V.EvKey V.KEsc        [] -> quit
         V.EvKey (V.KChar 'q') [] -> quit
-        V.EvKey V.KEnter      [] -> checkoutBranch
+        V.EvKey V.KEnter      [] -> endWithCheckout
+        V.EvKey (V.KChar 'r') [] -> endWithRebase
         V.EvKey V.KLeft       [] -> focusLocal
         V.EvKey (V.KChar 'h') [] -> focusLocal
         V.EvKey V.KRight      [] -> focusRemote
         V.EvKey (V.KChar 'l') [] -> focusRemote
         event                    -> navigate state event
+
 appHandleEvent state _ = M.continue state
 
 
@@ -156,6 +169,7 @@ navigate state event = do
 initialState :: [Branch] -> State
 initialState branches = State
   { _focus          = Local
+  , _gitCommand     = GitCheckout
   , _localBranches  = L.list Local (Vec.fromList local) 1
   , _remoteBranches = L.list Remote (Vec.fromList remote) 1
   }
