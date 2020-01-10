@@ -5,31 +5,51 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, base, brick, hpack, microlens, process
-      , stdenv, vector, vty
-      }:
+  f =
+    { mkDerivation
+    , base
+    , brick
+    , hpack
+    , hspec
+    , microlens
+    , process
+    , stdenv
+    , vector
+    , vty
+    }:
       mkDerivation {
         pname = "git-brunch";
         version = "1.1.0.0";
         src = ./.;
-        isLibrary = true;
+        isLibrary = false;
         isExecutable = true;
-        libraryHaskellDepends = [
-          base brick microlens process vector vty
-        ];
         libraryToolDepends = [ hpack ];
         executableHaskellDepends = [
-          base brick microlens process vector vty
+          base
+          brick
+          microlens
+          process
+          vector
+          vty
         ];
-        testHaskellDepends = [ base brick microlens process vector vty ];
+        testHaskellDepends = [
+          base
+          brick
+          hspec
+          microlens
+          process
+          vector
+          vty
+        ];
         prePatch = "hpack";
         homepage = "https://github.com/andys8/git-brunch#readme";
+        description = "git checkout command-line tool";
         license = stdenv.lib.licenses.bsd3;
       };
 
   haskellPackages = if compiler == "default"
-                       then pkgs.haskellPackages
-                       else pkgs.haskell.packages.${compiler};
+  then pkgs.haskellPackages
+  else pkgs.haskell.packages.${compiler};
 
   variant = if doBenchmark then pkgs.haskell.lib.doBenchmark else pkgs.lib.id;
 
@@ -37,4 +57,4 @@ let
 
 in
 
-  if pkgs.lib.inNixShell then drv.env else drv
+if pkgs.lib.inNixShell then drv.env else drv
