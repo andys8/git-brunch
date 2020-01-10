@@ -4,7 +4,7 @@ github: "andys8/git-brunch"
 license: BSD3
 author: "andys8"
 maintainer: "andys8@users.noreply.github.com"
-copyright: "2019 andys8"
+copyright: "2020 andys8"
 
 extra-source-files:
   - README.md
@@ -26,12 +26,6 @@ dependencies:
   - vector
   - vty
 
-internal-libraries:
-  git-brunch-lib:
-    source-dirs: src
-    ghc-options:
-      - -Wall
-
 flags:
   static:
     manual: true
@@ -41,8 +35,6 @@ executables:
   git-brunch:
     main: Main.hs
     source-dirs: app
-    generated-other-modules:
-      - Paths_git_brunch
     when:
       - condition: flag(static)
         then:
@@ -53,22 +45,25 @@ executables:
             - -threaded
             - -rtsopts
             - -with-rtsopts=-N
+            - -Wall
         else:
           ghc-options:
             - -threaded
             - -rtsopts
             - -with-rtsopts=-N
-    dependencies:
-      - git-brunch-lib
+            - -Wall
 
 tests:
   git-brunch-test:
     main: Spec.hs
-    source-dirs: test
+    source-dirs:
+      - test
+      - app
+    other-modules:
+      - Git
     ghc-options:
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
     dependencies:
-      - git-brunch-lib
       - hspec
