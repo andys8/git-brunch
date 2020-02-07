@@ -134,7 +134,7 @@ appHandleEvent state (T.VtyEvent e) =
       focusRemote     = M.continue $ focusBranches Remote state
       deleteSelection = focussedBranchesL %~ L.listClear
       quit            = M.halt $ deleteSelection state
-  in  case e of
+  in  case lowerCaseEvent e of
         V.EvKey V.KEsc        [] -> quit
         V.EvKey (V.KChar 'q') [] -> quit
         V.EvKey V.KEnter      [] -> endWithCheckout
@@ -144,6 +144,9 @@ appHandleEvent state (T.VtyEvent e) =
         V.EvKey V.KRight      [] -> focusRemote
         V.EvKey (V.KChar 'l') [] -> focusRemote
         event                    -> navigate state event
+ where
+  lowerCaseEvent (V.EvKey (V.KChar c) []) = V.EvKey (V.KChar (toLower c)) []
+  lowerCaseEvent e'                       = e'
 
 appHandleEvent state _ = M.continue state
 
