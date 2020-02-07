@@ -1,0 +1,30 @@
+name: CI
+
+on: [push]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/cache@v1
+        name: Cache ~/.stack
+        with:
+          path: ~/.stack
+          key: ${{ matrix.os }}-homestack
+      - uses: actions/cache@v1
+        name: Cache .stack-work
+        with:
+          path: .stack-work
+          key: ${{ matrix.os }}-stackwork
+      - if: matrix.os  == 'macos-latest'
+        run: brew install haskell-stack
+      - name: Stack setup
+        run: stack setup
+      - name: Build
+        run: stack build
+      - name: Run tests
+        run: stack test
