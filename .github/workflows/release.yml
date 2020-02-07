@@ -44,7 +44,12 @@ jobs:
         name: Cache ~/.stack
         with:
           path: ~/.stack
-          key: ${{ matrix.os }}-stack
+          key: ${{ matrix.os }}-homestack
+      - uses: actions/cache@v1
+        name: Cache .stack-work
+        with:
+          path: .stack-work
+          key: ${{ matrix.os }}-stackwork
       - if:  matrix.os  == 'ubuntu-latest'
         name: Build binary
         run: |
