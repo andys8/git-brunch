@@ -23,6 +23,11 @@ git config --global alias.b brunch
 1. `chmod +x git-brunch`
 1. Add to `PATH`
 
+### Arch Linux
+
+`git-brunch` is in the [AUR](https://aur.archlinux.org/packages/git-brunch).
+Install it with e.g. `yay -S git-brunch` or `pamac install git-brunch`.
+
 ### [Stack](https://haskellstack.org)
 
 #### Install
