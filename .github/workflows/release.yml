@@ -53,12 +53,12 @@ jobs:
       - if:  matrix.os  == 'ubuntu-latest'
         name: Build binary
         run: |
-          stack install --local-bin-path dist
+          stack install --local-bin-path dist  --flag git-brunch:static
       - if:  matrix.os  == 'macos-latest'
         name: Build binary
         run: |
           brew install haskell-stack
-          stack install --local-bin-path dist --flag git-brunch:static
+          stack install --local-bin-path dist
       - name: Load Release URL File from release job
         uses: actions/download-artifact@v1
         with:
