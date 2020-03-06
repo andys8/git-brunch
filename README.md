@@ -65,13 +65,13 @@ nix-env -if .
 ### Run application
 
 ```shell
-./run.sh
+stack build --exec git-brunch
 ```
 
 ### Run tests
 
 ```shell
-stack test --fast --file-watch
+stack test --file-watch
 ```
 
 ### Build statically linked
