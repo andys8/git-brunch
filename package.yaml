@@ -25,6 +25,7 @@ dependencies:
   - process
   - vector
   - vty
+  - hspec # workaround for language servers
 
 flags:
   static:
