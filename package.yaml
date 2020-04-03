@@ -25,6 +25,7 @@ dependencies:
   - process
   - vector
   - vty
+  - optparse-applicative
   - hspec # workaround for language servers
 
 flags:
