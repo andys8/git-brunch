@@ -1,6 +1,7 @@
 module Git
   ( listBranches
   , checkout
+  , fetch
   , rebaseInteractive
   , toBranches
   , Branch(..)
@@ -38,6 +39,8 @@ listBranches = toBranches <$> execGitBranch
     ]
     []
 
+fetch :: IO String
+fetch = readProcess "git" ["fetch", "--all"] []
 
 toBranches :: String -> [Branch]
 toBranches input = toBranch <$> filter (not . isHead) (lines input)

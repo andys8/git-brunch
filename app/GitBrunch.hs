@@ -45,9 +45,14 @@ import           Git
 import           Theme                          ( theme )
 
 
-data State = State { _focus :: Name, _gitCommand :: GitCommand,  _localBranches :: L.List Name Branch, _remoteBranches :: L.List Name Branch }
 data Name = Local | Remote deriving (Ord, Eq, Show)
 data GitCommand = GitRebase | GitCheckout deriving (Ord, Eq)
+data State = State
+  { _focus :: Name
+  , _gitCommand :: GitCommand
+  , _localBranches :: L.List Name Branch
+  , _remoteBranches :: L.List Name Branch
+  }
 
 instance (Show GitCommand) where
   show GitCheckout = "checkout"
@@ -56,7 +61,7 @@ instance (Show GitCommand) where
 main :: IO a
 main = do
   branches <- Git.listBranches
-  state    <- M.defaultMain app $ initialState branches
+  state    <- M.defaultMain app $ setBranches branches initialState
   let gitCommand = _gitCommand state
   let branch     = selectedBranch state
   let runGit = \case
@@ -94,7 +99,7 @@ appDraw state =
     [ drawInstruction "HJKL"  "navigate"
     , drawInstruction "Enter" "checkout"
     , drawInstruction "R"     "rebase"
-    , drawInstruction "Esc/Q" "exit"
+    , drawInstruction "F"     "fetch"
     ]
 
 
@@ -134,6 +139,7 @@ appHandleEvent state (T.VtyEvent e) =
       focusRemote     = M.continue $ focusBranches Remote state
       deleteSelection = focussedBranchesL %~ L.listClear
       quit            = M.halt $ deleteSelection state
+      updateBranches  = M.suspendAndResume (updateBranchList state)
   in  case lowerCaseEvent e of
         V.EvKey V.KEsc        []        -> quit
         V.EvKey (V.KChar 'q') []        -> quit
@@ -153,6 +159,13 @@ appHandleEvent state (T.VtyEvent e) =
 
 appHandleEvent state _ = M.continue state
 
+updateBranchList :: State -> IO State
+updateBranchList state = do
+  putStrLn "Fetching branches"
+  output <- fetch
+  putStr output
+  branches <- listBranches
+  return $ setBranches branches state
 
 focusBranches :: Name -> State -> State
 focusBranches target state = if state ^. focusL == target
@@ -172,17 +185,21 @@ navigate state event = do
   M.continue newState
 
 
-initialState :: [Branch] -> State
-initialState branches = State
-  { _focus          = Local
-  , _gitCommand     = GitCheckout
-  , _localBranches  = L.list Local (Vec.fromList local) 1
-  , _remoteBranches = L.list Remote (Vec.fromList remote) 1
-  }
+initialState :: State
+initialState =
+  State Local GitCheckout (L.list Local Vec.empty 1) (L.list Remote Vec.empty 1)
+
+
+setBranches :: [Branch] -> State -> State
+setBranches branches state = newState
  where
   (remote, local) = partition isRemote branches
   isRemote (BranchRemote _ _) = True
   isRemote _                  = False
+  toList n xs = L.list n (Vec.fromList xs) 1
+  newState = state { _localBranches  = toList Local local
+                   , _remoteBranches = toList Remote remote
+                   }
 
 
 selectedBranch :: State -> Maybe Branch
