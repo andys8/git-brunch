@@ -12,6 +12,7 @@ let
     , hpack
     , hspec
     , microlens
+    , optparse-applicative
     , process
     , stdenv
     , vector
@@ -19,7 +20,7 @@ let
     }:
       mkDerivation {
         pname = "git-brunch";
-        version = "1.1.2.0";
+        version = "1.2.0.0";
         src = ./.;
         isLibrary = false;
         isExecutable = true;
@@ -28,6 +29,7 @@ let
           base
           brick
           microlens
+          optparse-applicative
           process
           vector
           vty
@@ -37,6 +39,7 @@ let
           brick
           hspec
           microlens
+          optparse-applicative
           process
           vector
           vty
