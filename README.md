@@ -79,3 +79,9 @@ stack test --file-watch
 ```shell
 stack install --flag git-brunch:static
 ```
+
+### Generate nix
+
+```sh
+cabal2nix --shell . > default.nix
+```

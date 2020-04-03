@@ -1,8 +1,5 @@
-# cabal2nix --shell . > default.nix
 { nixpkgs ? import <nixpkgs> {}, compiler ? "default", doBenchmark ? false }:
-
 let
-
   inherit (nixpkgs) pkgs;
 
   f =
@@ -28,6 +25,7 @@ let
         executableHaskellDepends = [
           base
           brick
+          hspec
           microlens
           optparse-applicative
           process
@@ -57,7 +55,5 @@ let
   variant = if doBenchmark then pkgs.haskell.lib.doBenchmark else pkgs.lib.id;
 
   drv = variant (haskellPackages.callPackage f {});
-
 in
-
 if pkgs.lib.inNixShell then drv.env else drv
