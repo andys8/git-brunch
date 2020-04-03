@@ -58,8 +58,9 @@ checkout branch = spawnGit ["checkout", branchName branch]
 
 
 rebaseInteractive :: Branch -> IO ExitCode
-rebaseInteractive branch =
-  spawnGit ["rebase", "--interactive", "--autostash", branchName branch]
+rebaseInteractive branch = do
+  putStrLn $ "Rebase onto " <> fullBranchName branch
+  spawnGit ["rebase", "--interactive", "--autostash", fullBranchName branch]
 
 
 spawnGit :: [String] -> IO ExitCode
@@ -78,6 +79,10 @@ branchName (BranchCurrent n ) = n
 branchName (BranchLocal   n ) = n
 branchName (BranchRemote _ n) = n
 
+fullBranchName :: Branch -> String
+fullBranchName (BranchCurrent n ) = n
+fullBranchName (BranchLocal   n ) = n
+fullBranchName (BranchRemote r n) = r <> "/" <> n
 
 isHead :: String -> Bool
 isHead = isInfixOf "HEAD"
