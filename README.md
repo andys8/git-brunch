@@ -91,5 +91,6 @@ cabal2nix --shell . > default.nix
 - Bump version in `package.yaml` and `default.nix`
 - Create a tag `v0.0.0` locally and push it
 - Release on github will be created by CI
+- Update release description
 - `stack upload .`
 - Update [AUR](https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=git-brunch#n3)
