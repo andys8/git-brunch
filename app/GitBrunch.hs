@@ -46,7 +46,7 @@ import           Theme                          ( theme )
 
 
 data Name = Local | Remote deriving (Ord, Eq, Show)
-data GitCommand = GitRebase | GitCheckout deriving (Ord, Eq)
+data GitCommand = GitRebase | GitCheckout | GitDeleteBranch deriving (Ord, Eq)
 data State = State
   { _focus :: Name
   , _gitCommand :: GitCommand
@@ -55,8 +55,9 @@ data State = State
   }
 
 instance (Show GitCommand) where
-  show GitCheckout = "checkout"
-  show GitRebase   = "rebase"
+  show GitCheckout     = "checkout"
+  show GitRebase       = "rebase"
+  show GitDeleteBranch = "delete"
 
 main :: IO a
 main = do
@@ -65,8 +66,9 @@ main = do
   let gitCommand = _gitCommand state
   let branch     = selectedBranch state
   let runGit = \case
-        GitCheckout -> Git.checkout
-        GitRebase   -> Git.rebaseInteractive
+        GitCheckout     -> Git.checkout
+        GitRebase       -> Git.rebaseInteractive
+        GitDeleteBranch -> Git.deleteBranch
   exitCode <- maybe (die "No branch selected.") (runGit gitCommand) branch
   when (exitCode /= ExitSuccess) $ die ("Failed to " ++ show gitCommand ++ ".")
   exitWith exitCode
@@ -100,6 +102,7 @@ appDraw state =
     , drawInstruction "Enter" "checkout"
     , drawInstruction "R"     "rebase"
     , drawInstruction "F"     "fetch"
+    , drawInstruction "D"     "delete"
     ]
 
 
@@ -135,6 +138,7 @@ appHandleEvent :: State -> T.BrickEvent Name e -> T.EventM Name (T.Next State)
 appHandleEvent state (T.VtyEvent e) =
   let endWithCheckout = M.halt $ state { _gitCommand = GitCheckout }
       endWithRebase   = M.halt $ state { _gitCommand = GitRebase }
+      endWithDelete   = M.halt $ state { _gitCommand = GitDeleteBranch }
       focusLocal      = M.continue $ focusBranches Local state
       focusRemote     = M.continue $ focusBranches Remote state
       deleteSelection = focussedBranchesL %~ L.listClear
@@ -145,6 +149,7 @@ appHandleEvent state (T.VtyEvent e) =
         V.EvKey (V.KChar 'q') []        -> quit
         V.EvKey (V.KChar 'c') [V.MCtrl] -> quit
         V.EvKey (V.KChar 'd') [V.MCtrl] -> quit
+        V.EvKey (V.KChar 'd') []        -> endWithDelete
         V.EvKey V.KEnter      []        -> endWithCheckout
         V.EvKey (V.KChar 'r') []        -> endWithRebase
         V.EvKey V.KLeft       []        -> focusLocal

@@ -4,6 +4,7 @@ module Git
   , fetch
   , rebaseInteractive
   , toBranches
+  , deleteBranch
   , Branch(..)
   )
 where
@@ -65,6 +66,12 @@ rebaseInteractive branch = do
   putStrLn $ "Rebase onto " <> fullBranchName branch
   spawnGit ["rebase", "--interactive", "--autostash", fullBranchName branch]
 
+deleteBranch :: Branch -> IO ExitCode
+deleteBranch (BranchCurrent _) = error "Cannot delete current branch"
+deleteBranch (BranchLocal n) =
+  spawnGit ["branch", "-D", n]
+deleteBranch (BranchRemote o n) =
+  spawnGit ["push", o, "--delete", n]
 
 spawnGit :: [String] -> IO ExitCode
 spawnGit args = waitForProcess =<< spawnProcess "git" args
