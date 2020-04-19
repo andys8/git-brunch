@@ -11,7 +11,7 @@ where
 
 import           System.Process
 import           Data.List
-import           Data.Char                      ( isSpace )
+import           Data.Char                                ( isSpace )
 import           System.Exit
 
 data Branch = BranchLocal String
@@ -41,7 +41,7 @@ listBranches = toBranches <$> execGitBranch
     []
 
 fetch :: IO String
-fetch = readProcess "git" ["fetch", "--all"] []
+fetch = readProcess "git" ["fetch", "--all", "--prune"] []
 
 toBranches :: String -> [Branch]
 toBranches input = toBranch <$> filter (not . isHead) (lines input)
@@ -67,11 +67,9 @@ rebaseInteractive branch = do
   spawnGit ["rebase", "--interactive", "--autostash", fullBranchName branch]
 
 deleteBranch :: Branch -> IO ExitCode
-deleteBranch (BranchCurrent _) = error "Cannot delete current branch"
-deleteBranch (BranchLocal n) =
-  spawnGit ["branch", "-D", n]
-deleteBranch (BranchRemote o n) =
-  spawnGit ["push", o, "--delete", n]
+deleteBranch (BranchCurrent _ ) = error "Cannot delete current branch"
+deleteBranch (BranchLocal   n ) = spawnGit ["branch", "-D", n]
+deleteBranch (BranchRemote o n) = spawnGit ["push", o, "--delete", n]
 
 spawnGit :: [String] -> IO ExitCode
 spawnGit args = waitForProcess =<< spawnProcess "git" args
