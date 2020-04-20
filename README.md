@@ -46,7 +46,7 @@ stack install
 
 ### [Nix](https://nixos.org/nix)
 
-#### Install
+#### Install with nix-env
 
 ```sh
 nix-env -f "<nixpkgs>" -iA haskellPackages.git-brunch
@@ -94,3 +94,8 @@ cabal2nix --shell . > default.nix
 - Update release description
 - `stack upload .`
 - Update [AUR](https://aur.archlinux.org/cgit/aur.git/tree/PKGBUILD?h=git-brunch#n3)
+
+## Related projects
+
+- [`git-gone`](https://github.com/lunaryorn/git-gone): Lists or removes "gone" branches, that is, local branches which used to have an upstream branch on a remote which is now removed.
+- [`lazygit`](https://github.com/jesseduffield/lazygit): Terminal UI for git commands
