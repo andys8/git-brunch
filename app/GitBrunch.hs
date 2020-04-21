@@ -6,25 +6,25 @@ module GitBrunch
   )
 where
 
-import           Brick.Main                               ( halt
-                                                          , continue
-                                                          , suspendAndResume
-                                                          )
-import           Brick.Themes                             ( themeToAttrMap )
+import           Brick.Main                     ( halt
+                                                , continue
+                                                , suspendAndResume
+                                                )
+import           Brick.Themes                   ( themeToAttrMap )
 import           Brick.Types
 import           Brick.Widgets.Core
 import           Control.Monad
 import           Data.Char
 import           Data.List
-import           Data.Maybe                               ( fromMaybe )
-import           Graphics.Vty                      hiding ( update )
-import           Lens.Micro                               ( (^.)
-                                                          , (.~)
-                                                          , (&)
-                                                          , Lens'
-                                                          , lens
-                                                          , over
-                                                          )
+import           Data.Maybe                     ( fromMaybe )
+import           Graphics.Vty            hiding ( update )
+import           Lens.Micro                     ( (^.)
+                                                , (.~)
+                                                , (&)
+                                                , Lens'
+                                                , lens
+                                                , over
+                                                )
 import           System.Exit
 import qualified Brick.Main                    as M
 import qualified Brick.Widgets.Border          as B
@@ -244,7 +244,7 @@ selectedBranch state =
 createDialog :: GitCommand -> D.Dialog DialogOption
 createDialog cmd = D.dialog (Just title) (Just (0, choices)) 80
  where
-  choices = [("Cancel", Cancel), (btnText $ show cmd, Confirm)]
+  choices = [(btnText $ show cmd, Confirm), ("Cancel", Cancel)]
   title   = map toUpper $ show cmd
   btnText (x : xs) = toUpper x : xs
   btnText x        = x
