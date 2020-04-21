@@ -13,6 +13,9 @@ import           Brick.Main                     ( halt
 import           Brick.Themes                   ( themeToAttrMap )
 import           Brick.Types
 import           Brick.Widgets.Core
+import           Control.Exception              ( SomeException
+                                                , catch
+                                                )
 import           Control.Monad
 import           Data.Char
 import           Data.List
@@ -58,9 +61,9 @@ instance (Show GitCommand) where
   show GitRebase       = "rebase"
   show GitDeleteBranch = "delete"
 
-main :: IO a
+main :: IO ()
 main = do
-  branches <- Git.listBranches
+  branches <- Git.listBranches `catch` gitFailed
   state    <- M.defaultMain app $ setBranches branches initialState
   let gitCommand = _gitCommand state
   let branch     = selectedBranch state
@@ -70,7 +73,9 @@ main = do
         GitDeleteBranch -> Git.deleteBranch
   exitCode <- maybe (die "No branch selected.") (runGit gitCommand) branch
   when (exitCode /= ExitSuccess) $ die ("Failed to " ++ show gitCommand ++ ".")
-  exitWith exitCode
+ where
+  gitFailed :: SomeException -> IO a
+  gitFailed _ = exitFailure
 
 initialState :: State
 initialState = State Local GitCheckout (toList Local) (toList Remote) Nothing
