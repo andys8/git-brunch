@@ -9,7 +9,7 @@ module Git
   )
 where
 
-import           Data.Char                                ( isSpace )
+import           Data.Char                      ( isSpace )
 import           Data.List
 import           System.Exit
 import           System.Process

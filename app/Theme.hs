@@ -3,10 +3,8 @@ module Theme
   )
 where
 
-import           Brick.AttrMap                            ( attrName )
-import           Brick.Themes                             ( Theme
-                                                          , newTheme
-                                                          )
+import           Brick.AttrMap                  ( attrName )
+import           Brick.Themes
 import           Brick.Util
 import           Graphics.Vty
 import qualified Brick.Widgets.Dialog          as Dialog
