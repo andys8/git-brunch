@@ -9,13 +9,13 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v1
-      - uses: actions/cache@v1
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
         name: Cache ~/.stack
         with:
           path: ~/.stack
           key: ${{ matrix.os }}-homestack
-      - uses: actions/cache@v1
+      - uses: actions/cache@v2
         name: Cache .stack-work
         with:
           path: .stack-work
