@@ -1,0 +1,29 @@
+name: stan (static code analysis)
+
+on: [push]
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/cache@v1
+        name: Cache ~/.stack
+        with:
+          path: ~/.stack
+          key: ${{ matrix.os }}-homestack
+      - name: Stack setup
+        run: stack setup
+      - name: Generate hie files
+        run: stack build --ghc-options="-fwrite-ide-info -hiedir=.hie"
+      - name: Install stan
+        run: |
+          cd /tmp
+          git clone https://github.com/kowainik/stan.git
+          cd stan
+          stack install --local-bin-path .
+      - name: Run stan
+        run: /tmp/stan/stan
