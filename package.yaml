@@ -28,6 +28,9 @@ dependencies:
   - optparse-applicative
   - hspec # workaround for language servers
 
+default-extensions:
+  - StrictData
+
 flags:
   static:
     manual: true
