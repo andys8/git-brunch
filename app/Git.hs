@@ -6,6 +6,7 @@ module Git
   , toBranches
   , deleteBranch
   , Branch(..)
+  , isCommonBranch
   )
 where
 
@@ -70,6 +71,19 @@ spawnGit args = waitForProcess =<< spawnProcess "git" args
 
 readGit :: [String] -> IO String
 readGit args = readProcess "git" args []
+
+isCommonBranch :: Branch -> Bool
+isCommonBranch b =
+  branchName b
+    `elem` [ "master"
+           , "main"
+           , "dev"
+           , "devel"
+           , "develop"
+           , "development"
+           , "staging"
+           , "trunk"
+           ]
 
 --- Helper
 

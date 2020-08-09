@@ -24,8 +24,9 @@ theme = newTheme
   , (attrName "key"              , withStyle (fg brightMagenta) bold)
   , (attrName "bold"             , withStyle (fg white) bold)
   , (attrName "under"            , withStyle (fg brightWhite) underline)
-  , (attrName "current"          , fg brightRed)
   , (attrName "title"            , withStyle (fg brightWhite) bold)
   , (attrName "title-focus"      , withStyle (fg yellow) bold)
+  , (attrName "current-branch"   , fg brightRed)
+  , (attrName "common-branch"    , fg brightBlue)
   ]
 

@@ -141,8 +141,9 @@ drawListElement :: Bool -> Branch -> Widget ListName
 drawListElement _ branch =
   padLeft (Pad 1) $ padRight Max $ highlight branch $ str $ show branch
  where
-  highlight (BranchCurrent _) = withAttr "current"
-  highlight _                 = id
+  highlight (BranchCurrent _)    = withAttr "current-branch"
+  highlight b | isCommonBranch b = withAttr "common-branch"
+  highlight _                    = id
 
 drawInstruction :: String -> String -> Widget n
 drawInstruction keys action =
