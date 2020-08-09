@@ -1,12 +1,13 @@
 module Git
-  ( listBranches
+  ( Branch(..)
   , checkout
+  , deleteBranch
   , fetch
+  , fullBranchName
+  , isCommonBranch
+  , listBranches
   , rebaseInteractive
   , toBranches
-  , deleteBranch
-  , Branch(..)
-  , isCommonBranch
   )
 where
 
