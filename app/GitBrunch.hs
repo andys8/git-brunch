@@ -23,10 +23,10 @@ import           Data.Maybe                     ( fromMaybe )
 import           Graphics.Vty            hiding ( update )
 import           Lens.Micro                     ( (^.)
                                                 , (.~)
+                                                , (%~)
                                                 , (&)
                                                 , Lens'
                                                 , lens
-                                                , over
                                                 )
 import           System.Exit
 import qualified Brick.Main                    as M
@@ -166,7 +166,7 @@ appHandleEventMain state (VtyEvent e) =
   let confirm c = state { _gitCommand = c, _dialog = Just $ createDialog c }
       confirmDelete (Just (BranchCurrent _)) = continue state
       confirmDelete _ = continue $ confirm GitDeleteBranch
-      deleteSelection = focussedBranchesL `over` L.listClear
+      deleteSelection = focussedBranchesL %~ L.listClear
       endWithCheckout = halt $ state { _gitCommand = GitCheckout }
       endWithRebase   = halt $ state { _gitCommand = GitRebase }
       focusLocal      = continue $ focusBranches Local state
@@ -224,12 +224,15 @@ updateBranchList state = do
   return $ setBranches branches state
 
 focusBranches :: ListName -> State -> State
-focusBranches target state = if state ^. focusL == target
+focusBranches target state = if isAlreadySelected
   then state
-  else state & toL `over` L.listMoveTo selectedIndex & focusL .~ target
+  else state & changeList & syncPosition
  where
-  selectedIndex = fromMaybe 0 $ L.listSelected (state ^. fromL)
-  (fromL, toL)  = case target of
+  isAlreadySelected    = state ^. focusL == target
+  changeList           = focusL .~ target
+  selectedIndex        = state ^. fromListL . L.listSelectedL
+  syncPosition         = toListL %~ L.listMoveTo (fromMaybe 0 selectedIndex)
+  (fromListL, toListL) = case target of
     Local  -> (remoteBranchesL, localBranchesL)
     Remote -> (localBranchesL, remoteBranchesL)
 
