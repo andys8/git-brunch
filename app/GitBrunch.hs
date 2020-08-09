@@ -104,10 +104,10 @@ appDraw state =
   toBranchList lens' = state ^. lens' & (\l -> drawBranchList (hasFocus l) l)
   hasFocus     = (_focus state ==) . L.listName
   instructions = C.hCenter $ hLimit 100 $ hBox
-    [ drawInstruction "HJKL"  "navigate"
+    [ drawInstruction "HJKL"  "move"
     , drawInstruction "Enter" "checkout"
-    , drawInstruction "R"     "rebase"
     , drawInstruction "F"     "fetch"
+    , drawInstruction "R"     "rebase"
     , drawInstruction "D"     "delete"
     ]
 
