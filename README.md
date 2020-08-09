@@ -65,7 +65,7 @@ nix-env -if .
 ### Run application
 
 ```shell
-stack build --exec git-brunch
+stack run
 ```
 
 ### Run tests
