@@ -120,9 +120,9 @@ drawDialog state = case _dialog state of
     action = show (_gitCommand state)
     content =
       str "Really "
-        <+> withAttr "under" (str action)
+        <+> withAttr attrUnder (str action)
         <+> str " branch "
-        <+> withAttr "bold" (str branch)
+        <+> withAttr attrBold (str branch)
         <+> str "?"
 
 drawBranchList :: Bool -> L.List ListName Branch -> Widget ListName
@@ -134,22 +134,22 @@ drawBranchList hasFocus list =
  where
   title Local  = map toUpper "local"
   title Remote = map toUpper "remote"
-  attr      = withAttr $ if hasFocus then "title-focus" else "title"
+  attr      = withAttr $ if hasFocus then attrTitleFocus else attrTitle
   drawTitle = attr . str . title . L.listName
 
 drawListElement :: Bool -> Branch -> Widget ListName
 drawListElement _ branch =
   padLeft (Pad 1) $ padRight Max $ highlight branch $ str $ show branch
  where
-  highlight (BranchCurrent _)    = withAttr "current-branch"
-  highlight b | isCommonBranch b = withAttr "common-branch"
+  highlight (BranchCurrent _)    = withAttr attrBranchCurrent
+  highlight b | isCommonBranch b = withAttr attrBranchCommon
   highlight _                    = id
 
 drawInstruction :: String -> String -> Widget n
 drawInstruction keys action =
-  withAttr "key" (str keys)
+  withAttr attrKey (str keys)
     <+> str " to "
-    <+> withAttr "bold" (str action)
+    <+> withAttr attrBold (str action)
     &   C.hCenter
 
 appHandleEvent :: State -> BrickEvent ListName e -> EventM ListName (Next State)

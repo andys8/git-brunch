@@ -1,9 +1,8 @@
-module Theme
-  ( theme
-  )
-where
+module Theme where
 
-import           Brick.AttrMap                  ( attrName )
+import           Brick.AttrMap                  ( AttrName
+                                                , attrName
+                                                )
 import           Brick.Themes
 import           Brick.Util
 import           Graphics.Vty
@@ -21,12 +20,27 @@ theme = newTheme
   , (Dialog.buttonAttr           , brightBlack `on` white)
   , (Dialog.buttonSelectedAttr   , black `on` brightMagenta)
   , (Border.borderAttr           , fg white)
-  , (attrName "key"              , withStyle (fg brightMagenta) bold)
-  , (attrName "bold"             , withStyle (fg white) bold)
-  , (attrName "under"            , withStyle (fg brightWhite) underline)
-  , (attrName "title"            , withStyle (fg brightWhite) bold)
-  , (attrName "title-focus"      , withStyle (fg yellow) bold)
-  , (attrName "current-branch"   , fg brightRed)
-  , (attrName "common-branch"    , fg brightBlue)
+  , (attrKey                     , withStyle (fg brightMagenta) bold)
+  , (attrBold                    , withStyle (fg white) bold)
+  , (attrUnder                   , withStyle (fg brightWhite) underline)
+  , (attrTitle                   , withStyle (fg brightWhite) bold)
+  , (attrTitleFocus              , withStyle (fg yellow) bold)
+  , (attrBranchCurrent           , fg brightRed)
+  , (attrBranchCommon            , fg brightBlue)
   ]
 
+
+attrKey :: AttrName
+attrKey = attrName "key"
+attrBold :: AttrName
+attrBold = attrName "bold"
+attrUnder :: AttrName
+attrUnder = attrName "under"
+attrTitle :: AttrName
+attrTitle = attrName "title"
+attrTitleFocus :: AttrName
+attrTitleFocus = attrName "title-focus"
+attrBranchCurrent :: AttrName
+attrBranchCurrent = attrName "current-branch"
+attrBranchCommon :: AttrName
+attrBranchCommon = attrName "common-branch"
