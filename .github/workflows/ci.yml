@@ -14,17 +14,18 @@ jobs:
         name: Cache ~/.stack
         with:
           path: ~/.stack
-          key: ${{ matrix.os }}-homestack
-      - uses: actions/cache@v2
-        name: Cache .stack-work
+          key: ${{ runner.os }}-stack-${{ hashFiles('**/stack.yaml.lock') }}-${{ hashFiles('**/package.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-stack-${{ hashFiles('**/stack.yaml.lock') }}-
+            ${{ runner.os }}-stack-
+      - uses: actions/setup-haskell@v1.1
         with:
-          path: .stack-work
-          key: ${{ matrix.os }}-stackwork
-      - if: matrix.os  == 'macos-latest'
-        run: brew install haskell-stack
-      - name: Stack setup
-        run: stack setup
+          ghc-version: "8.8.3"
+          enable-stack: true
+          stack-version: "latest"
       - name: Build
         run: stack build
       - name: Run tests
         run: stack test
+      - name: Run with --version
+        run: stack run -- --version
