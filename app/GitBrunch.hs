@@ -134,7 +134,8 @@ drawBranchList hasFocus list =
  where
   title Local  = map toUpper "local"
   title Remote = map toUpper "remote"
-  drawTitle = withAttr "title" . str . title . L.listName
+  attr      = withAttr $ if hasFocus then "title-focus" else "title"
+  drawTitle = attr . str . title . L.listName
 
 drawListElement :: Bool -> Branch -> Widget ListName
 drawListElement _ branch =
