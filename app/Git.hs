@@ -25,35 +25,32 @@ instance (Show Branch) where
   show (BranchCurrent n ) = n <> "*"
   show (BranchRemote o n) = o <> "/" <> n
 
+fetch :: IO String
+fetch = readGit ["fetch", "--all", "--prune"]
 
 listBranches :: IO [Branch]
-listBranches = toBranches <$> execGitBranch
- where
-  execGitBranch = readProcess
-    "git"
-    [ "branch"
-    , "--list"
-    , "--all"
-    , "--sort=-committerdate"
-    , "--no-column"
-    , "--no-color"
-    ]
-    []
-
-fetch :: IO String
-fetch = readProcess "git" ["fetch", "--all", "--prune"] []
+listBranches = toBranches <$> readGit
+  [ "branch"
+  , "--list"
+  , "--all"
+  , "--sort=-committerdate"
+  , "--no-column"
+  , "--no-color"
+  ]
 
 toBranches :: String -> [Branch]
 toBranches input = toBranch <$> filter (not . isHead) (lines input)
 
 toBranch :: String -> Branch
-toBranch line = toBranch' $ words $ dropWhile isSpace line
+toBranch line = mkBranch $ words $ dropWhile isSpace line
  where
-  toBranch' ("*" : name : _) = BranchCurrent name
-  toBranch' (name       : _) = case stripPrefix "remotes/" name of
+  mkBranch ("*" : name : _) = BranchCurrent name
+  mkBranch (name       : _) = case stripPrefix "remotes/" name of
     Just rest -> parseRemoteBranch rest
     Nothing   -> BranchLocal name
-  toBranch' [] = error "empty branch name"
+  mkBranch [] = error "empty branch name"
+  parseRemoteBranch str = BranchRemote remote name
+    where (remote, _ : name) = span ('/' /=) str
 
 checkout :: Branch -> IO ExitCode
 checkout branch = spawnGit ["checkout", branchName branch]
@@ -71,10 +68,8 @@ deleteBranch (BranchRemote o n) = spawnGit ["push", o, "--delete", n]
 spawnGit :: [String] -> IO ExitCode
 spawnGit args = waitForProcess =<< spawnProcess "git" args
 
-parseRemoteBranch :: String -> Branch
-parseRemoteBranch str = BranchRemote remote name
-  where (remote, _ : name) = span ('/' /=) str
-
+readGit :: [String] -> IO String
+readGit args = readProcess "git" args []
 
 --- Helper
 
