@@ -169,8 +169,8 @@ appHandleEventMain state (VtyEvent e) =
       deleteSelection = focussedBranchesL %~ L.listClear
       endWithCheckout = halt $ state { _gitCommand = GitCheckout }
       endWithRebase   = halt $ state { _gitCommand = GitRebase }
-      focusLocal      = continue $ focusBranches Local state
-      focusRemote     = continue $ focusBranches Remote state
+      focusLocal      = focusBranches Local state
+      focusRemote     = focusBranches Remote state
       quit            = halt $ deleteSelection state
       updateBranches  = suspendAndResume (updateBranchList state)
   in  case lowerKey e of
@@ -223,18 +223,28 @@ updateBranchList state = do
   branches <- listBranches
   return $ setBranches branches state
 
-focusBranches :: ListName -> State -> State
+focusBranches :: ListName -> State -> EventM ListName (Next State)
 focusBranches target state = if isAlreadySelected
-  then state
-  else state & changeList & syncPosition
+  then continue state
+  else do
+    offsetDiff <- listOffsetDiff target
+    continue $ state & changeList & syncPosition offsetDiff
  where
-  isAlreadySelected    = state ^. focusL == target
-  changeList           = focusL .~ target
-  selectedIndex        = state ^. fromListL . L.listSelectedL
-  syncPosition         = toListL %~ L.listMoveTo (fromMaybe 0 selectedIndex)
-  (fromListL, toListL) = case target of
+  isAlreadySelected = state ^. focusL == target
+  changeList        = focusL .~ target
+  listIndex         = fromMaybe 0 $ state ^. currentListL . L.listSelectedL
+  syncPosition diff = targetListL %~ L.listMoveTo (listIndex - diff)
+  (currentListL, targetListL) = case target of
     Local  -> (remoteBranchesL, localBranchesL)
     Remote -> (localBranchesL, remoteBranchesL)
+
+listOffsetDiff :: ListName -> EventM ListName Int
+listOffsetDiff target = do
+  offLocal  <- getOffset Local
+  offRemote <- getOffset Remote
+  return
+    $ if target == Local then offRemote - offLocal else offLocal - offRemote
+  where getOffset name = maybe 0 (^. vpTop) <$> M.lookupViewport name
 
 setBranches :: [Branch] -> State -> State
 setBranches branches state = newState
