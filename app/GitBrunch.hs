@@ -41,18 +41,16 @@ import           Git
 import           Theme
 
 
-data Name = Local | Remote deriving (Ord, Eq, Show)
-data GitCommand = GitRebase | GitCheckout | GitDeleteBranch deriving (Ord, Eq)
-
+data ListName     = Local | Remote deriving (Ord, Eq, Show)
+data GitCommand   = GitRebase | GitCheckout | GitDeleteBranch deriving (Ord, Eq)
 data DialogOption = Cancel | Confirm
-data DialogResult = SetDialog (D.Dialog DialogOption)
-                  | EndDialog DialogOption
+data DialogResult = SetDialog (D.Dialog DialogOption) | EndDialog DialogOption
 
 data State = State
-  { _focus :: Name
+  { _focus :: ListName
   , _gitCommand :: GitCommand
-  , _localBranches :: L.List Name Branch
-  , _remoteBranches :: L.List Name Branch
+  , _localBranches :: L.List ListName Branch
+  , _remoteBranches :: L.List ListName Branch
   , _dialog :: Maybe (D.Dialog DialogOption)
   }
 
@@ -65,23 +63,24 @@ main :: IO ()
 main = do
   branches <- Git.listBranches `catch` gitFailed
   state    <- M.defaultMain app $ setBranches branches initialState
-  let gitCommand = _gitCommand state
-  let branch     = selectedBranch state
-  let runGit = \case
-        GitCheckout     -> Git.checkout
-        GitRebase       -> Git.rebaseInteractive
-        GitDeleteBranch -> Git.deleteBranch
-  exitCode <- maybe (die "No branch selected.") (runGit gitCommand) branch
-  when (exitCode /= ExitSuccess) $ die ("Failed to " ++ show gitCommand ++ ".")
+  let execGit = gitFunction (_gitCommand state)
+  exitCode <- maybe noBranchErr execGit (selectedBranch state)
+  when (exitCode /= ExitSuccess)
+    $ die ("Failed to " ++ show (_gitCommand state) ++ ".")
  where
   gitFailed :: SomeException -> IO a
   gitFailed _ = exitFailure
+  noBranchErr = die "No branch selected."
+  gitFunction = \case
+    GitCheckout     -> Git.checkout
+    GitRebase       -> Git.rebaseInteractive
+    GitDeleteBranch -> Git.deleteBranch
 
 initialState :: State
-initialState = State Local GitCheckout (toList Local) (toList Remote) Nothing
-  where toList n = L.list n Vec.empty 1
+initialState = State Local GitCheckout (mkList Local) (mkList Remote) Nothing
+  where mkList focus = L.list focus Vec.empty 1
 
-app :: M.App State e Name
+app :: M.App State e ListName
 app = M.App { M.appDraw         = appDraw
             , M.appChooseCursor = M.showFirstCursor
             , M.appHandleEvent  = appHandleEvent
@@ -89,7 +88,7 @@ app = M.App { M.appDraw         = appDraw
             , M.appAttrMap      = const $ themeToAttrMap theme
             }
 
-appDraw :: State -> [Widget Name]
+appDraw :: State -> [Widget ListName]
 appDraw state =
   drawDialog state
     : [ C.vCenter $ padAll 1 $ vBox
@@ -126,7 +125,7 @@ drawDialog state = case _dialog state of
         <+> withAttr "bold" (str branch)
         <+> str "?"
 
-drawBranchList :: Bool -> L.List Name Branch -> Widget Name
+drawBranchList :: Bool -> L.List ListName Branch -> Widget ListName
 drawBranchList hasFocus list =
   withBorderStyle BS.unicodeBold
     $ B.borderWithLabel (drawTitle list)
@@ -137,7 +136,7 @@ drawBranchList hasFocus list =
   title Remote = map toUpper "remote"
   drawTitle = withAttr "title" . str . title . L.listName
 
-drawListElement :: Bool -> Branch -> Widget Name
+drawListElement :: Bool -> Branch -> Widget ListName
 drawListElement _ branch =
   padLeft (Pad 1) $ padRight Max $ highlight branch $ str $ show branch
  where
@@ -151,7 +150,7 @@ drawInstruction keys action =
     <+> withAttr "bold" (str action)
     &   C.hCenter
 
-appHandleEvent :: State -> BrickEvent Name e -> EventM Name (Next State)
+appHandleEvent :: State -> BrickEvent ListName e -> EventM ListName (Next State)
 appHandleEvent state e = case _dialog state of
   Nothing -> appHandleEventMain state e
   Just d  -> toState =<< appHandleEventDialog d e
@@ -161,7 +160,8 @@ appHandleEvent state e = case _dialog state of
     toState (EndDialog Cancel) =
       continue $ state { _dialog = Nothing, _gitCommand = GitCheckout }
 
-appHandleEventMain :: State -> BrickEvent Name e -> EventM Name (Next State)
+appHandleEventMain
+  :: State -> BrickEvent ListName e -> EventM ListName (Next State)
 appHandleEventMain state (VtyEvent e) =
   let confirm c = state { _gitCommand = c, _dialog = Just $ createDialog c }
       confirmDelete (Just (BranchCurrent _)) = continue state
@@ -190,7 +190,9 @@ appHandleEventMain state (VtyEvent e) =
 appHandleEventMain state _ = continue state
 
 appHandleEventDialog
-  :: D.Dialog DialogOption -> BrickEvent Name e -> EventM Name DialogResult
+  :: D.Dialog DialogOption
+  -> BrickEvent ListName e
+  -> EventM ListName DialogResult
 appHandleEventDialog dialog (VtyEvent e) =
   let quit         = pure $ EndDialog Cancel
       closeDialog  = pure $ EndDialog Cancel
@@ -207,7 +209,7 @@ appHandleEventDialog dialog (VtyEvent e) =
         ev                        -> SetDialog <$> D.handleDialogEvent ev dialog
 appHandleEventDialog dialog _ = pure $ SetDialog dialog
 
-navigate :: State -> Event -> EventM Name (Next State)
+navigate :: State -> Event -> EventM ListName (Next State)
 navigate state event = do
   let update = L.handleListEventVi L.handleListEvent
   newState <- handleEventLensed state focussedBranchesL update event
@@ -221,7 +223,7 @@ updateBranchList state = do
   branches <- listBranches
   return $ setBranches branches state
 
-focusBranches :: Name -> State -> State
+focusBranches :: ListName -> State -> State
 focusBranches target state = if state ^. focusL == target
   then state
   else state & toL `over` L.listMoveTo selectedIndex & focusL .~ target
@@ -273,19 +275,19 @@ vimKey = mapKey vimify
 
 -- Lens
 
-focussedBranchesL :: Lens' State (L.List Name Branch)
+focussedBranchesL :: Lens' State (L.List ListName Branch)
 focussedBranchesL =
   let branchLens s = case s ^. focusL of
         Local  -> localBranchesL
         Remote -> remoteBranchesL
   in  lens (\s -> s ^. branchLens s) (\s bs -> (branchLens s .~ bs) s)
 
-localBranchesL :: Lens' State (L.List Name Branch)
+localBranchesL :: Lens' State (L.List ListName Branch)
 localBranchesL = lens _localBranches (\s bs -> s { _localBranches = bs })
 
-remoteBranchesL :: Lens' State (L.List Name Branch)
+remoteBranchesL :: Lens' State (L.List ListName Branch)
 remoteBranchesL = lens _remoteBranches (\s bs -> s { _remoteBranches = bs })
 
-focusL :: Lens' State Name
+focusL :: Lens' State ListName
 focusL = lens _focus (\s f -> s { _focus = f })
 
