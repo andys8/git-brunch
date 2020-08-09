@@ -186,7 +186,7 @@ appHandleEventMain state (VtyEvent e) =
         EvKey KRight      []      -> focusRemote
         EvKey (KChar 'l') []      -> focusRemote
         EvKey (KChar 'f') []      -> updateBranches
-        event                     -> navigate state event
+        _                         -> navigate state e
 appHandleEventMain state _ = continue state
 
 appHandleEventDialog
