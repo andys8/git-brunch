@@ -39,7 +39,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - if: matrix.os  == 'ubuntu-latest'
+        uses: actions/cache@v2
         name: Cache ~/.stack
         with:
           path: ~/.stack
@@ -52,10 +53,10 @@ jobs:
           ghc-version: "8.8.3"
           enable-stack: true
           stack-version: "latest"
-      - if:  matrix.os  == 'ubuntu-latest'
+      - if: matrix.os  == 'ubuntu-latest'
         name: Build binary (linux/static)
         run: stack install --local-bin-path dist  --flag git-brunch:static
-      - if:  matrix.os  == 'macos-latest'
+      - if: matrix.os  == 'macos-latest'
         name: Build binary (macos/dynamic)
         run: stack install --local-bin-path dist
       - name: Load Release URL File from release job
