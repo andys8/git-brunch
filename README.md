@@ -1,4 +1,4 @@
-# git-brunch [![Build Status](https://travis-ci.org/andys8/git-brunch.svg?branch=master)](https://travis-ci.org/andys8/git-brunch)
+# git-brunch [![Travis](https://travis-ci.org/andys8/git-brunch.svg?branch=master)](https://travis-ci.org/andys8/git-brunch) ![Actions](https://github.com/andys8/git-brunch/workflows/CI/badge.svg)
 
 A git checkout and rebase command-line tool
 
@@ -33,7 +33,7 @@ Install it with e.g. `yay -S git-brunch` or `pamac install git-brunch`.
 #### Install
 
 ```sh
-stack install git-brunch # --resolver=lts-14.16
+stack install git-brunch # --resolver=lts-16.8
 ```
 
 #### Clone and install from source
