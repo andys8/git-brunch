@@ -212,55 +212,51 @@ appHandleEventDialog dialog _ = pure $ SetDialog dialog
 
 appHandleEventMain :: State -> BrickEvent Name e -> EventM Name (Next State)
 appHandleEventMain state (VtyEvent e) =
-  let
-    confirm c = state { _gitCommand = c, _dialog = Just $ createDialog c }
-    confirmDelete (Just (BranchCurrent _)) = continue state
-    confirmDelete _                        = continue $ confirm GitDeleteBranch
-    deleteSelection    = focussedBranchesL %~ L.listClear
-    endWithCheckout    = halt $ state { _gitCommand = GitCheckout }
-    endWithRebase      = halt $ state { _gitCommand = GitRebase }
-    focusLocal         = focusBranches RLocal state
-    focusRemote        = focusBranches RRemote state
-    quit               = halt $ deleteSelection state
-    doFetch            = suspendAndResume (fetchBranches state)
-    startEditingFilter = continue $ updateLists $ state
-      { _isEditingFilter = True
-      , _filter          = emptyFilter
-      }
-    cancelEditingFilter = continue $ updateLists $ state
-      { _isEditingFilter = False
-      , _filter          = emptyFilter
-      }
-    stopEditingFilter =
-      continue $ updateLists $ state { _isEditingFilter = False }
-    handle =
-      if _isEditingFilter state then handleEditingFilter else handleDefault
-    handleDefault = \case
-      EvKey (KChar 'c') [MCtrl] -> quit
-      EvKey (KChar 'd') [MCtrl] -> quit
-      EvKey KEsc        []      -> quit
-      EvKey (KChar 'q') []      -> quit
-      EvKey (KChar '/') []      -> startEditingFilter
-      EvKey (KChar 'f') [MCtrl] -> startEditingFilter
-      EvKey (KChar 'd') []      -> confirmDelete (selectedBranch state)
-      EvKey KEnter      []      -> endWithCheckout
-      EvKey (KChar 'r') []      -> endWithRebase
-      EvKey KLeft       []      -> focusLocal
-      EvKey (KChar 'h') []      -> focusLocal
-      EvKey KRight      []      -> focusRemote
-      EvKey (KChar 'l') []      -> focusRemote
-      EvKey (KChar 'f') []      -> doFetch
-      _                         -> navigate state e
-    handleEditingFilter = \case
-      EvKey (KChar 'c') [MCtrl] -> quit
-      EvKey (KChar 'd') [MCtrl] -> quit
-      EvKey KEsc        []      -> cancelEditingFilter
-      EvKey KEnter      []      -> stopEditingFilter
-      EvKey KUp         []      -> stopEditingFilter
-      EvKey KDown       []      -> stopEditingFilter
-      _                         -> (updateLists <$>) <$> handleFilter state e
-  in
-    handle $ lowerKey e
+  let confirm c = state { _gitCommand = c, _dialog = Just $ createDialog c }
+      confirmDelete (Just (BranchCurrent _)) = continue state
+      confirmDelete _ = continue $ confirm GitDeleteBranch
+      deleteSelection    = focussedBranchesL %~ L.listClear
+      endWithCheckout    = halt $ state { _gitCommand = GitCheckout }
+      endWithRebase      = halt $ state { _gitCommand = GitRebase }
+      focusLocal         = focusBranches RLocal state
+      focusRemote        = focusBranches RRemote state
+      quit               = halt $ deleteSelection state
+      doFetch            = suspendAndResume (fetchBranches state)
+      startEditingFilter = continue $ updateLists $ state
+        { _isEditingFilter = True
+        , _filter          = emptyFilter
+        }
+      cancelEditingFilter =
+          continue $ state { _isEditingFilter = False, _filter = emptyFilter }
+      stopEditingFilter = continue $ state { _isEditingFilter = False }
+      handle            = if _isEditingFilter state
+        then fmap (updateLists <$>) . handleEditingFilter
+        else handleDefault
+      handleDefault = \case
+        EvKey (KChar 'c') [MCtrl] -> quit
+        EvKey (KChar 'd') [MCtrl] -> quit
+        EvKey KEsc        []      -> quit
+        EvKey (KChar 'q') []      -> quit
+        EvKey (KChar '/') []      -> startEditingFilter
+        EvKey (KChar 'f') [MCtrl] -> startEditingFilter
+        EvKey (KChar 'd') []      -> confirmDelete (selectedBranch state)
+        EvKey KEnter      []      -> endWithCheckout
+        EvKey (KChar 'r') []      -> endWithRebase
+        EvKey KLeft       []      -> focusLocal
+        EvKey (KChar 'h') []      -> focusLocal
+        EvKey KRight      []      -> focusRemote
+        EvKey (KChar 'l') []      -> focusRemote
+        EvKey (KChar 'f') []      -> doFetch
+        _                         -> navigate state e
+      handleEditingFilter = \case
+        EvKey (KChar 'c') [MCtrl] -> quit
+        EvKey (KChar 'd') [MCtrl] -> quit
+        EvKey KEsc        []      -> cancelEditingFilter
+        EvKey KEnter      []      -> stopEditingFilter
+        EvKey KUp         []      -> stopEditingFilter
+        EvKey KDown       []      -> stopEditingFilter
+        _                         -> handleFilter state e
+  in  handle $ lowerKey e
 
 appHandleEventMain state _ = continue state
 
@@ -308,7 +304,14 @@ fetchBranches state = do
   return $ updateLists state { _branches = branches }
 
 updateLists :: State -> State
-updateLists state = newState
+updateLists state =
+  state
+    &  localBranchesL
+    .~ mkList Local local
+    &  remoteBranchesL
+    .~ mkList Remote remote
+    &  focusL
+    %~ toggleFocus (local, remote)
  where
   mkList n xs = L.list n (Vec.fromList xs) 1
   isRemote (BranchRemote _ _) = True
@@ -317,10 +320,11 @@ updateLists state = newState
   filteredBranches =
     filter (isInfixOf filterString . fullBranchName) (_branches state)
   (remote, local) = partition isRemote filteredBranches
-  newState        = state { _localBranches  = mkList Local local
-                          , _remoteBranches = mkList Remote remote
-                          }
 
+toggleFocus :: ([Branch], [Branch]) -> RemoteName -> RemoteName
+toggleFocus ([]   , _ : _) RLocal  = RRemote
+toggleFocus (_ : _, []   ) RRemote = RLocal
+toggleFocus _              x       = x
 
 selectedBranch :: State -> Maybe Branch
 selectedBranch state =
