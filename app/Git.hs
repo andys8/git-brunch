@@ -5,6 +5,7 @@ module Git
   , fetch
   , fullBranchName
   , isCommonBranch
+  , isRemoteBranch
   , listBranches
   , rebaseInteractive
   , toBranches
@@ -85,6 +86,11 @@ isCommonBranch b =
            , "staging"
            , "trunk"
            ]
+
+
+isRemoteBranch :: Branch -> Bool
+isRemoteBranch (BranchRemote _ _) = True
+isRemoteBranch _                  = False
 
 --- Helper
 

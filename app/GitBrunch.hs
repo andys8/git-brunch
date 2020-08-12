@@ -1,6 +1,5 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RankNTypes #-}
 module GitBrunch
   ( main
   )
@@ -38,7 +37,8 @@ import qualified Brick.Widgets.List            as L
 import qualified Brick.Widgets.Edit            as E
 import qualified Data.Vector                   as Vec
 
-import           Git
+import qualified Git
+import           Git                            ( Branch(..) )
 import           Theme
 
 
@@ -172,9 +172,9 @@ drawListElement :: Bool -> Branch -> Widget Name
 drawListElement _ branch =
   padLeft (Pad 1) $ padRight Max $ highlight branch $ str $ show branch
  where
-  highlight (BranchCurrent _)    = withAttr attrBranchCurrent
-  highlight b | isCommonBranch b = withAttr attrBranchCommon
-  highlight _                    = id
+  highlight (BranchCurrent _)        = withAttr attrBranchCurrent
+  highlight b | Git.isCommonBranch b = withAttr attrBranchCommon
+  highlight _                        = id
 
 drawInstruction :: String -> String -> Widget n
 drawInstruction keys action =
@@ -212,65 +212,65 @@ appHandleEventDialog dialog _ = pure $ SetDialog dialog
 
 appHandleEventMain :: State -> BrickEvent Name e -> EventM Name (Next State)
 appHandleEventMain state (VtyEvent e) =
-  let confirm c = state { _gitCommand = c, _dialog = Just $ createDialog c }
-      confirmDelete (Just (BranchCurrent _)) = continue state
-      confirmDelete _ = continue $ confirm GitDeleteBranch
-      deleteSelection    = focussedBranchesL %~ L.listClear
-      endWithCheckout    = halt $ state { _gitCommand = GitCheckout }
-      endWithRebase      = halt $ state { _gitCommand = GitRebase }
-      focusLocal         = focusBranches RLocal state
-      focusRemote        = focusBranches RRemote state
-      quit               = halt $ deleteSelection state
-      doFetch            = suspendAndResume (fetchBranches state)
-      startEditingFilter = continue $ updateLists $ state
-        { _isEditingFilter = True
-        , _filter          = emptyFilter
-        }
-      cancelEditingFilter =
-          continue $ state { _isEditingFilter = False, _filter = emptyFilter }
-      stopEditingFilter = continue $ state { _isEditingFilter = False }
-      handle            = if _isEditingFilter state
-        then fmap (updateLists <$>) . handleEditingFilter
-        else handleDefault
-      handleDefault = \case
-        EvKey (KChar 'c') [MCtrl] -> quit
-        EvKey (KChar 'd') [MCtrl] -> quit
-        EvKey KEsc        []      -> quit
-        EvKey (KChar 'q') []      -> quit
-        EvKey (KChar '/') []      -> startEditingFilter
-        EvKey (KChar 'f') [MCtrl] -> startEditingFilter
-        EvKey (KChar 'd') []      -> confirmDelete (selectedBranch state)
-        EvKey KEnter      []      -> endWithCheckout
-        EvKey (KChar 'r') []      -> endWithRebase
-        EvKey KLeft       []      -> focusLocal
-        EvKey (KChar 'h') []      -> focusLocal
-        EvKey KRight      []      -> focusRemote
-        EvKey (KChar 'l') []      -> focusRemote
-        EvKey (KChar 'f') []      -> doFetch
-        _                         -> navigate state e
-      handleEditingFilter = \case
-        EvKey (KChar 'c') [MCtrl] -> quit
-        EvKey (KChar 'd') [MCtrl] -> quit
-        EvKey KEsc        []      -> cancelEditingFilter
-        EvKey KEnter      []      -> stopEditingFilter
-        EvKey KUp         []      -> stopEditingFilter
-        EvKey KDown       []      -> stopEditingFilter
-        _                         -> handleFilter state e
-  in  handle $ lowerKey e
+  let
+    confirm c = state { _gitCommand = c, _dialog = Just $ createDialog c }
+    confirmDelete (Just (BranchCurrent _)) = continue state
+    confirmDelete _                        = continue $ confirm GitDeleteBranch
+    deleteSelection = focussedBranchesL %~ L.listClear
+    endWithCheckout = halt $ state { _gitCommand = GitCheckout }
+    endWithRebase   = halt $ state { _gitCommand = GitRebase }
+    focusLocal      = focusBranches RLocal state
+    focusRemote     = focusBranches RRemote state
+    quit            = halt $ deleteSelection state
+    doFetch         = suspendAndResume (fetchBranches state)
+    resetFilter     = filterL .~ emptyFilter
+    showFilter      = isEditingFilterL .~ True
+    hideFilter      = isEditingFilterL .~ False
+    startEditingFilter =
+      continue $ updateLists $ resetFilter $ showFilter state
+    cancelEditingFilter = continue $ hideFilter $ resetFilter state
+    stopEditingFilter   = continue $ hideFilter state
+    handle              = if _isEditingFilter state
+      then fmap (updateLists <$>) . handleEditingFilter
+      else handleDefault
+    handleDefault = \case
+      EvKey (KChar 'c') [MCtrl] -> quit
+      EvKey (KChar 'd') [MCtrl] -> quit
+      EvKey KEsc        []      -> quit
+      EvKey (KChar 'q') []      -> quit
+      EvKey (KChar '/') []      -> startEditingFilter
+      EvKey (KChar 'f') [MCtrl] -> startEditingFilter
+      EvKey (KChar 'd') []      -> confirmDelete (selectedBranch state)
+      EvKey KEnter      []      -> endWithCheckout
+      EvKey (KChar 'r') []      -> endWithRebase
+      EvKey KLeft       []      -> focusLocal
+      EvKey (KChar 'h') []      -> focusLocal
+      EvKey KRight      []      -> focusRemote
+      EvKey (KChar 'l') []      -> focusRemote
+      EvKey (KChar 'f') []      -> doFetch
+      _                         -> navigate state e
+    handleEditingFilter = \case
+      EvKey (KChar 'c') [MCtrl] -> quit
+      EvKey (KChar 'd') [MCtrl] -> quit
+      EvKey KEsc        []      -> cancelEditingFilter
+      EvKey KEnter      []      -> stopEditingFilter
+      EvKey KUp         []      -> stopEditingFilter
+      EvKey KDown       []      -> stopEditingFilter
+      _                         -> handleFilter state e
+  in
+    handle $ lowerKey e
 
 appHandleEventMain state _ = continue state
 
 
 navigate :: State -> Event -> EventM Name (Next State)
-navigate state event = do
-  let update = L.handleListEventVi L.handleListEvent
-  newState <- handleEventLensed state focussedBranchesL update event
-  continue newState
+navigate state event =
+  continue =<< handleEventLensed state focussedBranchesL update event
+  where update = L.handleListEventVi L.handleListEvent
 
 handleFilter :: State -> Event -> EventM Name (Next State)
-handleFilter state event = do
-  newState <- handleEventLensed state filterL E.handleEditorEvent event
-  continue newState
+handleFilter state event =
+  continue =<< handleEventLensed state filterL E.handleEditorEvent event
 
 focusBranches :: RemoteName -> State -> EventM Name (Next State)
 focusBranches target state = if isAlreadySelected
@@ -298,9 +298,9 @@ listOffsetDiff target = do
 fetchBranches :: State -> IO State
 fetchBranches state = do
   putStrLn "Fetching branches"
-  output <- fetch
+  output <- Git.fetch
   putStr output
-  branches <- listBranches
+  branches <- Git.listBranches
   return $ updateLists state { _branches = branches }
 
 updateLists :: State -> State
@@ -313,13 +313,12 @@ updateLists state =
     &  focusL
     %~ toggleFocus (local, remote)
  where
-  mkList n xs = L.list n (Vec.fromList xs) 1
-  isRemote (BranchRemote _ _) = True
-  isRemote _                  = False
-  filterString = unwords $ E.getEditContents $ _filter state
-  filteredBranches =
-    filter (isInfixOf filterString . fullBranchName) (_branches state)
-  (remote, local) = partition isRemote filteredBranches
+  mkList name xs = L.list name (Vec.fromList xs) 1
+  lower            = map toLower
+  filterString     = lower $ unwords $ E.getEditContents $ _filter state
+  isBranchInFilter = isInfixOf filterString . Git.fullBranchName
+  filteredBranches = filter isBranchInFilter (_branches state)
+  (remote, local)  = partition Git.isRemoteBranch filteredBranches
 
 toggleFocus :: ([Branch], [Branch]) -> RemoteName -> RemoteName
 toggleFocus ([]   , _ : _) RLocal  = RRemote
@@ -354,7 +353,6 @@ vimKey = mapKey vimify
   vimify 'l' = KRight
   vimify k   = KChar k
 
-
 -- Lens
 
 focussedBranchesL :: Lens' State (L.List Name Branch)
@@ -375,3 +373,6 @@ focusL = lens _focus (\s f -> s { _focus = f })
 
 filterL :: Lens' State (E.Editor String Name)
 filterL = lens _filter (\s f -> s { _filter = f })
+
+isEditingFilterL :: Lens' State Bool
+isEditingFilterL = lens _isEditingFilter (\s f -> s { _isEditingFilter = f })
