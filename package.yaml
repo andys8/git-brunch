@@ -26,6 +26,7 @@ dependencies:
 
 default-extensions:
   - StrictData
+  - OverloadedStrings
 
 flags:
   static:
