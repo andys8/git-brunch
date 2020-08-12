@@ -224,7 +224,8 @@ appHandleEventMain state (VtyEvent e) =
   let
     confirm c = state { _gitCommand = c, _dialog = Just $ createDialog c }
     confirmDelete (Just (BranchCurrent _)) = continue state
-    confirmDelete _                        = continue $ confirm GitDeleteBranch
+    confirmDelete (Just _                ) = continue $ confirm GitDeleteBranch
+    confirmDelete Nothing                  = continue state
     endWithCheckout = halt $ state { _gitCommand = GitCheckout }
     endWithRebase   = halt $ state { _gitCommand = GitRebase }
     focusLocal      = focusBranches RLocal state
@@ -304,7 +305,7 @@ fetchBranches state = do
   output <- Git.fetch
   putStr output
   branches <- Git.listBranches
-  return $ updateLists state { _branches = branches }
+  return $ updateLists state { _branches = branches, _filter = emptyFilter }
 
 updateLists :: State -> State
 updateLists state =
