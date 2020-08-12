@@ -9,6 +9,7 @@ import           Graphics.Vty
 import qualified Brick.Widgets.Dialog          as Dialog
 import qualified Brick.Widgets.List            as List
 import           Brick.Widgets.Border          as Border
+import qualified Brick.Widgets.Edit            as Edit
 
 theme :: Theme
 theme = newTheme
@@ -20,6 +21,7 @@ theme = newTheme
   , (Dialog.buttonAttr           , brightBlack `on` white)
   , (Dialog.buttonSelectedAttr   , black `on` brightMagenta)
   , (Border.borderAttr           , fg white)
+  , (Edit.editFocusedAttr        , fg brightWhite)
   , (attrKey                     , withStyle (fg brightMagenta) bold)
   , (attrBold                    , withStyle (fg white) bold)
   , (attrUnder                   , withStyle (fg brightWhite) underline)
