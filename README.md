@@ -6,11 +6,11 @@ A git branch checkout command-line tool
 
 ## Features
 
-* Checkout local or remote branch
-* Rebase onto a branch
-* Search for a branch
-* Delete a branch
-* Fetch / Update
+- Checkout local or remote branch
+- Rebase onto a branch
+- Search for a branch
+- Delete a branch
+- Fetch / Update
 
 ## Usage
 
@@ -97,7 +97,9 @@ cabal2nix --shell . > default.nix
 ## Release
 
 - Bump version in `package.yaml` and `default.nix`
-- Create a tag `v0.0.0` locally and push it
+- Create a commit `v0.0.0`
+- Create a tag `v0.0.0`
+- Push commit and push tag
 - Release on github will be created by CI
 - Update release description
 - `stack upload .`
