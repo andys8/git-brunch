@@ -117,7 +117,9 @@ appDraw state =
  where
   padding = str " "
   maxWidth w = C.hCenter . hLimit w
-  toBranchList r lens' = state ^. lens' & drawBranchList (state ^. focusL == r)
+  toBranchList r lens' =
+    let isActive = state ^. focusL == r && not (_isEditingFilter state)
+    in  state ^. lens' & drawBranchList isActive
   filterEdit  = if _isEditingFilter state then drawFilter state else emptyWidget
   branchLists = hBox
     [ C.hCenter $ toBranchList RLocal localBranchesL
