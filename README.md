@@ -41,7 +41,7 @@ Install it with e.g. `yay -S git-brunch` or `pamac install git-brunch`.
 #### Install
 
 ```sh
-stack install git-brunch # --resolver=lts-16.8
+stack install git-brunch # --resolver=lts-16.11
 ```
 
 #### Clone and install from source
