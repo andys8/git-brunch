@@ -109,3 +109,4 @@ cabal2nix --shell . > default.nix
 
 - [`git-gone`](https://github.com/lunaryorn/git-gone): Lists or removes "gone" branches, that is, local branches which used to have an upstream branch on a remote which is now removed.
 - [`lazygit`](https://github.com/jesseduffield/lazygit): Terminal UI for git commands
+- [`gitui`](https://github.com/extrawurst/gitui): Terminal UI focused on speed in giant repositories
