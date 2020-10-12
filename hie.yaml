@@ -1,0 +1,6 @@
+cradle:
+  stack:
+    - path: "./app"
+      component: "git-brunch:exe:git-brunch"
+    - path: "./test"
+      component: "git-brunch:test:git-brunch-test"
