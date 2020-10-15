@@ -32,6 +32,10 @@ main = hspec $ describe "Git.toBranch" $ do
     $          toBranches "* (HEAD detached at f01a202)"
     `shouldBe` []
 
+  it "ignores 'no branch' during rebase"
+    $          toBranches "* (no branch, rebasing branch-name)"
+    `shouldBe` []
+
   it "parses sample output"
     $          toBranches sampleOutput
     `shouldBe` [ BranchLocal "experimental/failing-debug-log-demo"
