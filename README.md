@@ -97,6 +97,7 @@ cabal2nix --shell . > default.nix
 ## Release
 
 - Bump version in `package.yaml` and `default.nix`
+- Generate cabal files with [`stack2cabal`](https://github.com/hasufell/stack2cabal)
 - Create a commit `v0.0.0`
 - Create a tag `v0.0.0`
 - Push commit and push tag
