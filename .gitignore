@@ -1,5 +1,4 @@
 .stack-work/
-git-brunch.cabal
 *~
 dist
 dist-*
