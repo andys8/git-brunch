@@ -1,0 +1,77 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:           git-brunch
+version:        1.4.2.0
+synopsis:       git checkout command-line tool
+description:    Please see the README on GitHub at <https://github.com/andys8/git-brunch>
+category:       Git
+homepage:       https://github.com/andys8/git-brunch#readme
+bug-reports:    https://github.com/andys8/git-brunch/issues
+author:         andys8
+maintainer:     andys8@users.noreply.github.com
+copyright:      2020 andys8
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/andys8/git-brunch
+
+flag static
+  manual: True
+  default: False
+
+executable git-brunch
+  main-is: Main.hs
+  other-modules:
+      Git
+      GitBrunch
+      Theme
+      Paths_git_brunch
+  hs-source-dirs:
+      app
+  default-extensions: StrictData OverloadedStrings
+  build-depends:
+      base >=4.7 && <5
+    , brick
+    , hspec
+    , microlens
+    , optparse-applicative
+    , process
+    , vector
+    , vty
+  if flag(static)
+    ghc-options: -static -threaded -rtsopts -with-rtsopts=-N -Wall
+    cc-options: -static
+    ld-options: -static -pthread
+  else
+    ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+  default-language: Haskell2010
+
+test-suite git-brunch-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Git
+  hs-source-dirs:
+      test
+      app
+  default-extensions: StrictData OverloadedStrings
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , brick
+    , hspec
+    , microlens
+    , optparse-applicative
+    , process
+    , vector
+    , vty
+  default-language: Haskell2010
