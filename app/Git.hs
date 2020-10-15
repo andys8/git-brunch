@@ -42,7 +42,8 @@ listBranches = toBranches <$> readGit
   ]
 
 toBranches :: String -> [Branch]
-toBranches input = toBranch <$> filter (not . isHead) (lines input)
+toBranches input = toBranch <$> filter validBranch (lines input)
+  where validBranch b = not $ isHead b || isDetachedHead b || isNoBranch b
 
 toBranch :: String -> Branch
 toBranch line = mkBranch $ words $ dropWhile isSpace line
@@ -107,3 +108,10 @@ fullBranchName (BranchRemote r n) = r <> "/" <> n
 isHead :: String -> Bool
 isHead = isInfixOf "HEAD"
 
+isDetachedHead :: String -> Bool
+isDetachedHead = isInfixOf "HEAD detached"
+
+-- While rebasing git will show "no branch"
+-- e.g. "* (no branch, rebasing branch-name)"
+isNoBranch :: String -> Bool
+isNoBranch = isInfixOf "(no branch,"
