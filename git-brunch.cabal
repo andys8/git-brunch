@@ -1,8 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.34.2.
+-- This file has been generated from package.yaml by hpack version 0.33.0.
 --
 -- see: https://github.com/sol/hpack
+--
+-- hash: a6badf00f36b9a989355a39bf5abb910c22c370ff5e0e3725145be8fb2a953ca
 
 name:           git-brunch
 version:        1.4.2.0

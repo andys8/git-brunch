@@ -23,3 +23,4 @@ cabal.project.local~
 .HTF/
 .ghc.environment.*
 result
+cabal.project
