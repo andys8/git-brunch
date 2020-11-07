@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9263926d475d256ff4e043491db3bb0a57d22816cda04f7b246f2cd354b92a1f
+-- hash: 643cd917a331afd2c5c769ae081cd6f382eec74c30471e6b5b3ac9315c3df792
 
 name:           git-brunch
-version:        1.4.3.0
+version:        1.4.4.0
 synopsis:       git checkout command-line tool
 description:    Please see the README on GitHub at <https://github.com/andys8/git-brunch>
 category:       Git
