@@ -1,5 +1,4 @@
 {-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE RankNTypes #-}
 module GitBrunch
   ( main
   )
@@ -111,8 +110,8 @@ app = M.App { M.appDraw         = appDraw
 appDraw :: State -> [Widget Name]
 appDraw state =
   drawDialog state
-    : [ C.vCenter $ padAll 1 $ vBox
-          (maxWidth 200 <$> [branchLists, filterEdit, padding, instructions])
+    : [ C.vCenter $ padAll 1 $ maxWidth 200 $ vBox
+          [branchLists, filterEdit, padding, instructions]
       ]
  where
   padding = str " "
