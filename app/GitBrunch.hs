@@ -137,15 +137,10 @@ appDraw state =
 
 drawFilter :: State -> Widget Name
 drawFilter state =
-  withBorderStyle BS.unicodeBold
-    $   B.border
-    $   padLeft (Pad 1)
-    $   vLimit 1
-    $   label
-    <+> editor
+  withBorderStyle BS.unicodeBold $ B.border $ vLimit 1 $ label <+> editor
  where
   editor = E.renderEditor (str . unlines) True (state ^. filterL)
-  label  = str "Filter: "
+  label  = str " Filter: "
 
 drawDialog :: State -> Widget n
 drawDialog state = case _dialog state of
@@ -171,9 +166,10 @@ drawBranchList hasFocus list =
   drawTitle = attr . str . map toUpper . show . L.listName
 
 drawListElement :: Bool -> Branch -> Widget Name
-drawListElement _ branch =
-  padLeft (Pad 1) $ padRight Max $ highlight branch $ str $ show branch
+drawListElement isListFocussed branch =
+  maxPadding $ highlight branch $ str $ " " <> show branch
  where
+  maxPadding = if isListFocussed then padRight Max else id
   highlight (BranchCurrent _)        = withAttr attrBranchCurrent
   highlight b | Git.isCommonBranch b = withAttr attrBranchCommon
   highlight _                        = id
