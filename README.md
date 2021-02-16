@@ -36,36 +36,25 @@ git config --global alias.b brunch
 `git-brunch` is in the [AUR](https://aur.archlinux.org/packages/git-brunch).
 Install it with e.g. `yay -S git-brunch` or `pamac install git-brunch`.
 
-### [Stack](https://haskellstack.org)
+### [Nix](https://nixos.org/nix)
 
-#### Install
+```sh
+nix-env -i git-brunch
+```
+
+### [Stack](https://haskellstack.org)
 
 ```sh
 stack install git-brunch # --resolver=lts-16.11
 ```
 
-#### Clone and install from source
+### Install from source
 
 ```sh
-git clone https://github.com/andys8/git-brunch.git
+git clone https://github.com/andys8/git-brunch
 cd git-brunch
 stack install
-```
-
-### [Nix](https://nixos.org/nix)
-
-#### Install with nix-env
-
-```sh
-nix-env -f "<nixpkgs>" -iA haskellPackages.git-brunch
-```
-
-#### Clone and install with `nix`
-
-```sh
-git clone https://github.com/andys8/git-brunch.git
-cd git-brunch
-nix-env -if .
+# or nix-env -if .
 ```
 
 ## Development
