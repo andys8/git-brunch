@@ -45,7 +45,7 @@ nix-env -i git-brunch
 ### [Stack](https://haskellstack.org)
 
 ```sh
-stack install git-brunch # --resolver=lts-16.11
+stack install git-brunch # --resolver=lts-17.4
 ```
 
 ### Install from source
