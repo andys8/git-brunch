@@ -38,7 +38,7 @@ Install it with e.g. `yay -S git-brunch` or `pamac install git-brunch`.
 
 ### FreeBSD
 
-`git-branch` can be installed from the official package repository with `pkg install hs-git-brunch`.
+`git-brunch` can be installed from the official package repository with `pkg install hs-git-brunch`.
 
 ### [Nix](https://nixos.org/nix)
 
