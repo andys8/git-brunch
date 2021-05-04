@@ -36,6 +36,10 @@ git config --global alias.b brunch
 `git-brunch` is in the [AUR](https://aur.archlinux.org/packages/git-brunch).
 Install it with e.g. `yay -S git-brunch` or `pamac install git-brunch`.
 
+### FreeBSD
+
+`git-brunch` can be installed from the official package repository with `pkg install hs-git-brunch`.
+
 ### [Nix](https://nixos.org/nix)
 
 ```sh
