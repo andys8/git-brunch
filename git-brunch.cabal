@@ -50,7 +50,7 @@ executable git-brunch
     , vector
     , vty
   if flag(static)
-    ghc-options: -static -threaded -rtsopts -with-rtsopts=-N -Wall -O2
+    ghc-options: -static -threaded -rtsopts -with-rtsopts=-N -Wall -O2 -optl-fuse-ld=bfd
     cc-options: -static
     ld-options: -static -pthread
   else
