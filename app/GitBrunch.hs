@@ -1,16 +1,22 @@
 {-# LANGUAGE LambdaCase #-}
 module GitBrunch
   ( main
-  )
-where
+  ) where
 
-import           Brick.Main                     ( halt
-                                                , continue
+import           Brick.Main                     ( continue
+                                                , halt
                                                 , suspendAndResume
                                                 )
+import qualified Brick.Main                    as M
 import           Brick.Themes                   ( themeToAttrMap )
 import           Brick.Types
+import qualified Brick.Widgets.Border          as B
+import qualified Brick.Widgets.Border.Style    as BS
+import qualified Brick.Widgets.Center          as C
 import           Brick.Widgets.Core
+import qualified Brick.Widgets.Dialog          as D
+import qualified Brick.Widgets.Edit            as E
+import qualified Brick.Widgets.List            as L
 import           Control.Exception              ( SomeException
                                                 , catch
                                                 )
@@ -18,51 +24,45 @@ import           Control.Monad
 import           Data.Char
 import           Data.List
 import           Data.Maybe                     ( fromMaybe )
+import qualified Data.Vector                   as Vec
 import           Graphics.Vty            hiding ( update )
-import           Lens.Micro                     ( (^.)
-                                                , (.~)
-                                                , (%~)
+import           Lens.Micro                     ( (%~)
                                                 , (&)
+                                                , (.~)
                                                 , Lens'
+                                                , (^.)
                                                 , lens
                                                 )
 import           System.Exit
-import qualified Brick.Main                    as M
-import qualified Brick.Widgets.Border          as B
-import qualified Brick.Widgets.Border.Style    as BS
-import qualified Brick.Widgets.Center          as C
-import qualified Brick.Widgets.Dialog          as D
-import qualified Brick.Widgets.Edit            as E
-import qualified Brick.Widgets.List            as L
-import qualified Data.Vector                   as Vec
 
 import           Git                            ( Branch(..) )
-import           Theme
 import qualified Git
+import           Theme
 
 
 data Name         = Local | Remote | Filter deriving (Ord, Eq, Show)
 data RemoteName   = RLocal | RRemote deriving (Eq)
-data GitCommand   = GitRebase | GitCheckout | GitDeleteBranch deriving (Ord, Eq)
+data GitCommand   = GitRebase | GitMerge | GitCheckout | GitDeleteBranch deriving (Ord, Eq)
 data DialogResult = SetDialog Dialog | EndDialog DialogOption
 data DialogOption = Cancel | Confirm
 type Dialog = D.Dialog DialogOption
 
 data State = State
-  { _focus :: RemoteName
-  , _gitCommand :: GitCommand
-  , _branches :: [Branch]
-  , _localBranches :: L.List Name Branch
-  , _remoteBranches :: L.List Name Branch
-  , _dialog :: Maybe Dialog
-  , _filter :: E.Editor String Name
+  { _focus           :: RemoteName
+  , _gitCommand      :: GitCommand
+  , _branches        :: [Branch]
+  , _localBranches   :: L.List Name Branch
+  , _remoteBranches  :: L.List Name Branch
+  , _dialog          :: Maybe Dialog
+  , _filter          :: E.Editor String Name
   , _isEditingFilter :: Bool
   }
 
 
-instance (Show GitCommand) where
+instance Show GitCommand where
   show GitCheckout     = "checkout"
   show GitRebase       = "rebase"
+  show GitMerge        = "merge"
   show GitDeleteBranch = "delete"
 
 
@@ -81,6 +81,7 @@ main = do
   gitFunction = \case
     GitCheckout     -> Git.checkout
     GitRebase       -> Git.rebaseInteractive
+    GitMerge        -> Git.merge
     GitDeleteBranch -> Git.deleteBranch
 
 emptyState :: State
@@ -126,11 +127,11 @@ appDraw state =
     , C.hCenter $ toBranchList RRemote remoteBranchesL
     ]
   instructions = maxWidth 100 $ hBox
-    [ drawInstruction "HJKL"  "move"
-    , drawInstruction "Enter" "checkout"
+    [ drawInstruction "Enter" "checkout"
     , drawInstruction "/"     "filter"
     , drawInstruction "F"     "fetch"
     , drawInstruction "R"     "rebase"
+    , drawInstruction "M"     "merge"
     , drawInstruction "D"     "delete"
     ]
 
@@ -225,6 +226,7 @@ appHandleEventMain state (VtyEvent e) =
     confirmDelete Nothing                  = continue state
     endWithCheckout = halt $ state { _gitCommand = GitCheckout }
     endWithRebase   = halt $ state { _gitCommand = GitRebase }
+    endWithMerge    = halt $ state { _gitCommand = GitMerge }
     focusLocal      = focusBranches RLocal state
     focusRemote     = focusBranches RRemote state
     doFetch         = suspendAndResume (fetchBranches state)
@@ -245,7 +247,9 @@ appHandleEventMain state (VtyEvent e) =
       EvKey (KChar 'f') [MCtrl] -> startEditingFilter
       EvKey (KChar 'd') []      -> confirmDelete (selectedBranch state)
       EvKey KEnter      []      -> endWithCheckout
+      EvKey (KChar 'c') []      -> endWithCheckout
       EvKey (KChar 'r') []      -> endWithRebase
+      EvKey (KChar 'm') []      -> endWithMerge
       EvKey KLeft       []      -> focusLocal
       EvKey (KChar 'h') []      -> focusLocal
       EvKey KRight      []      -> focusRemote

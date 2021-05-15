@@ -1,8 +1,8 @@
 module Main where
 
+import           Data.Version                   ( showVersion )
 import           Options.Applicative
 import           Paths_git_brunch               ( version )
-import           Data.Version                   ( showVersion )
 
 import qualified GitBrunch
 
@@ -15,7 +15,7 @@ main = run =<< execParser opts
  where
   opts = info
     (versionParser <|> pure RunGitBrunch <**> helper)
-    (header "git-brunch - A git checkout and rebase command-line tool")
+    (header "git-brunch - A git command-line tool to work with branches")
 
 
 run :: Mode -> IO ()

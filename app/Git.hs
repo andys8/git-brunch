@@ -8,9 +8,9 @@ module Git
   , isRemoteBranch
   , listBranches
   , rebaseInteractive
+  , merge
   , toBranches
-  )
-where
+  ) where
 
 import           Data.Char                      ( isSpace )
 import           Data.List
@@ -63,6 +63,11 @@ rebaseInteractive :: Branch -> IO ExitCode
 rebaseInteractive branch = do
   putStrLn $ "Rebase onto " <> fullBranchName branch
   spawnGit ["rebase", "--interactive", "--autostash", fullBranchName branch]
+
+merge :: Branch -> IO ExitCode
+merge branch = do
+  putStrLn $ "Merge branch " <> fullBranchName branch
+  spawnGit ["merge", fullBranchName branch]
 
 deleteBranch :: Branch -> IO ExitCode
 deleteBranch (BranchCurrent _ ) = error "Cannot delete current branch"
