@@ -49,6 +49,7 @@ executables:
             - -with-rtsopts=-N
             - -Wall
             - -O2
+            - -optl-fuse-ld=bfd
         else:
           ghc-options:
             - -threaded

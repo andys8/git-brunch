@@ -65,7 +65,7 @@ nix-env -i git-brunch
 `git-brunch` can installed with the Haskell build tool stack
 
 ```sh
-stack install git-brunch # --resolver=lts-17.4
+stack install git-brunch # --resolver=lts-17.11
 ```
 
 ### Install from source
