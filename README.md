@@ -18,29 +18,43 @@ Run `git-brunch` or `git brunch`.
 
 ### Git alias (optional)
 
+An alias like `git b` (or `gb`) is a good idea to quickly access the tool.
+
 ```sh
 git config --global alias.b brunch
 ```
 
 ## Installation
 
+The installation is possible in multiple ways, and there are binaries available to download.
+
 ### Download binary
 
-1. Download from [releases](https://github.com/andys8/git-brunch/releases)
-1. Rename to `git-brunch`
-1. `chmod +x git-brunch`
-1. Add to `PATH`
+1. Download from **[releases](https://github.com/andys8/git-brunch/releases)**
+1. Rename the file to `git-brunch`
+1. Make it executable with `chmod +x git-brunch`
+1. Add to your `PATH`
 
 ### Arch Linux
 
-`git-brunch` is in the [AUR](https://aur.archlinux.org/packages/git-brunch).
-Install it with e.g. `yay -S git-brunch` or `pamac install git-brunch`.
+`git-brunch` is in the [AUR](https://aur.archlinux.org/packages/git-brunch)
+
+```sh
+yay -S git-brunch
+pamac install git-brunch
+```
 
 ### FreeBSD
 
-`git-brunch` can be installed from the official package repository with `pkg install hs-git-brunch`.
+`git-brunch` can be installed from the official FreeBSD package repository
+
+```sh
+pkg install hs-git-brunch
+```
 
 ### [Nix](https://nixos.org/nix)
+
+`git-brunch` is part of the nix package manager
 
 ```sh
 nix-env -i git-brunch
@@ -48,11 +62,15 @@ nix-env -i git-brunch
 
 ### [Stack](https://haskellstack.org)
 
+`git-brunch` can installed with the Haskell build tool stack
+
 ```sh
 stack install git-brunch # --resolver=lts-17.4
 ```
 
 ### Install from source
+
+`git-brunch` can be installed from source. It can be forked and modified, if you like to.
 
 ```sh
 git clone https://github.com/andys8/git-brunch
