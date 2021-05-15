@@ -1,13 +1,13 @@
 # git-brunch [![Travis](https://travis-ci.org/andys8/git-brunch.svg?branch=master)](https://travis-ci.org/andys8/git-brunch) ![Actions](https://github.com/andys8/git-brunch/workflows/CI/badge.svg)
 
-A git branch checkout command-line tool
+A git command-line tool to work with branches
 
 ![screenshot](https://raw.githubusercontent.com/andys8/git-brunch/master/screenshot.png)
 
 ## Features
 
-- Checkout local or remote branch
-- Rebase onto a branch
+- Quickly checkout local or remote branch
+- Merge or rebase a branch
 - Search for a branch
 - Delete a branch
 - Fetch / Update

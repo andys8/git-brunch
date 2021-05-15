@@ -5,11 +5,11 @@ import           Brick.AttrMap                  ( AttrName
                                                 )
 import           Brick.Themes
 import           Brick.Util
-import           Graphics.Vty
-import qualified Brick.Widgets.Dialog          as Dialog
-import qualified Brick.Widgets.List            as List
 import           Brick.Widgets.Border          as Border
+import qualified Brick.Widgets.Dialog          as Dialog
 import qualified Brick.Widgets.Edit            as Edit
+import qualified Brick.Widgets.List            as List
+import           Graphics.Vty
 
 theme :: Theme
 theme = newTheme
