@@ -1,5 +1,5 @@
-import           Test.Hspec
 import           Git
+import           Test.Hspec
 
 main :: IO ()
 main = hspec $ describe "Git.toBranch" $ do

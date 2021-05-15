@@ -1,8 +1,8 @@
 module Main where
 
+import           Data.Version                   ( showVersion )
 import           Options.Applicative
 import           Paths_git_brunch               ( version )
-import           Data.Version                   ( showVersion )
 
 import qualified GitBrunch
 
