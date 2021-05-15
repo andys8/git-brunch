@@ -3,11 +3,9 @@ cabal-version: 1.12
 -- This file has been generated from package.yaml by hpack version 0.34.4.
 --
 -- see: https://github.com/sol/hpack
---
--- hash: c32cfb3e007291aaae447a467d7a182f94a45c06f63f0c1cb46886481916468d
 
 name:           git-brunch
-version:        1.4.4.0
+version:        1.5.0.0
 synopsis:       git checkout command-line tool
 description:    Please see the README on GitHub at <https://github.com/andys8/git-brunch>
 category:       Git
@@ -15,7 +13,7 @@ homepage:       https://github.com/andys8/git-brunch#readme
 bug-reports:    https://github.com/andys8/git-brunch/issues
 author:         andys8
 maintainer:     andys8@users.noreply.github.com
-copyright:      2020 andys8
+copyright:      2021 andys8
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
