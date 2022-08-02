@@ -1,7 +1,5 @@
 {-# LANGUAGE LambdaCase #-}
-module GitBrunch
-  ( main
-  ) where
+module GitBrunch (main) where
 
 import           Brick.Main                     ( continue
                                                 , halt
@@ -275,7 +273,7 @@ navigate state event =
 
 handleFilter :: State -> Event -> EventM Name (Next State)
 handleFilter state event =
-  continue =<< handleEventLensed state filterL E.handleEditorEvent event
+  continue =<< handleEventLensed state filterL E.handleEditorEvent (VtyEvent event)
 
 focusBranches :: RemoteName -> State -> EventM Name (Next State)
 focusBranches target state = if isAlreadySelected
