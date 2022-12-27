@@ -13,13 +13,12 @@ import Brick.Widgets.Edit qualified as E
 import Brick.Widgets.List qualified as L
 import Control.Exception (SomeException, catch)
 import Control.Monad
-import Control.Monad.State (StateT (runStateT), evalState, execState, runState)
 import Data.Char
 import Data.List
 import Data.Maybe (fromMaybe)
 import Data.Vector qualified as Vec
 import Graphics.Vty hiding (update)
-import Lens.Micro (Lens', lens, (%~), (&), (.~), (^.))
+import Lens.Micro (Lens', lens, (%~), (&), (.~), (^.), _Just)
 import Lens.Micro.Mtl ((%=), (.=))
 import System.Exit
 
@@ -193,34 +192,30 @@ appHandleEvent :: BrickEvent Name e -> EventM Name State ()
 appHandleEvent e =
   gets _dialog >>= \case
     Nothing -> appHandleEventMain e
-    Just d -> do
-      -- TODO: Use zoom?
-      -- TODO: toState
-      -- let x = runStateT $ appHandleEventDialog e
-      pure ()
-     where
+    Just d -> appHandleEventDialog d e
+
+handleDialog :: BrickEvent Name e -> EventM Name State ()
+handleDialog (VtyEvent e) = zoom (dialogL . _Just) $ D.handleDialogEvent e
+handleDialog _ = pure ()
+
+appHandleEventDialog :: Dialog -> BrickEvent Name e -> EventM Name State ()
+appHandleEventDialog dialog event@(VtyEvent e) = do
+  let closeDialog = EndDialog Cancel
+      dialogAction = case D.dialogSelection dialog of
+        Just Cancel -> EndDialog Cancel
+        Just confirm -> EndDialog confirm
+        Nothing -> SetDialog dialog
       toState (SetDialog dlg) = dialogL .= Just dlg
       toState (EndDialog Confirm) = dialogL .= Nothing >> halt
       toState (EndDialog Cancel) = do
         dialogL .= Nothing
         gitCommandL .= GitCheckout
-
-appHandleEventDialog :: BrickEvent Name e -> EventM Name Dialog DialogResult
-appHandleEventDialog (VtyEvent e) = do
-  dialog <- get
-  let closeDialog = pure $ EndDialog Cancel
-      dialogAction = pure $ case D.dialogSelection dialog of
-        Just Cancel -> EndDialog Cancel
-        Just confirm -> EndDialog confirm
-        Nothing -> SetDialog dialog
    in case vimKey $ lowerKey e of
-        EvKey KEnter [] -> dialogAction
-        EvKey KEsc [] -> closeDialog
-        EvKey (KChar 'q') [] -> closeDialog
-        ev -> do
-          D.handleDialogEvent e
-          SetDialog <$> get
-appHandleEventDialog _ = SetDialog <$> get
+        EvKey KEnter [] -> toState dialogAction
+        EvKey KEsc [] -> toState closeDialog
+        EvKey (KChar 'q') [] -> toState closeDialog
+        _ -> handleDialog event
+appHandleEventDialog _ _ = pure ()
 
 appHandleEventMain :: BrickEvent Name e -> EventM Name State ()
 appHandleEventMain (VtyEvent e) =
