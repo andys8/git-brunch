@@ -194,6 +194,7 @@ appHandleEvent e =
   gets _dialog >>= \case
     Nothing -> appHandleEventMain e
     Just d -> do
+      -- TODO: Use zoom?
       -- TODO: toState
       -- let x = runStateT $ appHandleEventDialog e
       pure ()
@@ -224,6 +225,7 @@ appHandleEventDialog _ = SetDialog <$> get
 appHandleEventMain :: BrickEvent Name e -> EventM Name State ()
 appHandleEventMain (VtyEvent e) =
   let
+    confirm :: GitCommand -> EventM Name State ()
     confirm cmd = do
       gitCommandL .= cmd
       dialogL .= Just (createDialog cmd)
@@ -285,26 +287,24 @@ appHandleEventMain _ = pure ()
 
 navigate :: Event -> EventM Name State ()
 navigate event =
-  continue =<< handleEventLensed state focussedBranchesL update event
- where
-  update = L.handleListEventVi L.handleListEvent
+  zoom focussedBranchesL $ L.handleListEventVi L.handleListEvent event
 
 handleFilter :: Event -> EventM Name State ()
 handleFilter event =
-  continue =<< handleEventLensed state filterL E.handleEditorEvent (VtyEvent event)
+  zoom filterL $ E.handleEditorEvent (VtyEvent event)
 
 focusBranches :: RemoteName -> EventM Name State ()
-focusBranches target =
-  if isAlreadySelected
-    then continue state
+focusBranches target = do
+  focus <- gets _focus
+  if focus == target
+    then pure ()
     else do
       offsetDiff <- listOffsetDiff target
-      continue $ state & changeList & syncPosition offsetDiff
+      modify (changeList . syncPosition offsetDiff)
  where
-  isAlreadySelected = state ^. focusL == target
   changeList = focusL .~ target
-  listIndex = fromMaybe 0 $ state ^. currentListL . L.listSelectedL
-  syncPosition diff = targetListL %~ L.listMoveTo (listIndex - diff)
+  listIndex state = fromMaybe 0 $ state ^. currentListL . L.listSelectedL
+  syncPosition diff state = (targetListL %~ L.listMoveTo (listIndex state - diff)) state
   (currentListL, targetListL) = case target of
     RLocal -> (remoteBranchesL, localBranchesL)
     RRemote -> (localBranchesL, remoteBranchesL)
