@@ -1,8 +1,6 @@
-{-# LANGUAGE LambdaCase #-}
-
 module GitBrunch (main) where
 
-import Brick.Main (continue, halt, suspendAndResume)
+import Brick.Main (halt, suspendAndResume)
 import Brick.Main qualified as M
 import Brick.Themes (themeToAttrMap)
 import Brick.Types
@@ -15,12 +13,14 @@ import Brick.Widgets.Edit qualified as E
 import Brick.Widgets.List qualified as L
 import Control.Exception (SomeException, catch)
 import Control.Monad
+import Control.Monad.State (StateT (runStateT), evalState, execState, runState)
 import Data.Char
 import Data.List
 import Data.Maybe (fromMaybe)
 import Data.Vector qualified as Vec
 import Graphics.Vty hiding (update)
 import Lens.Micro (Lens', lens, (%~), (&), (.~), (^.))
+import Lens.Micro.Mtl ((%=), (.=))
 import System.Exit
 
 import Git (Branch (..))
@@ -92,7 +92,7 @@ app =
     { M.appDraw = appDraw
     , M.appChooseCursor = M.showFirstCursor
     , M.appHandleEvent = appHandleWithQuit
-    , M.appStartEvent = return
+    , M.appStartEvent = return ()
     , M.appAttrMap = const $ themeToAttrMap theme
     }
 
@@ -175,31 +175,38 @@ drawInstruction keys action =
     <+> withAttr attrBold (str action)
     & C.hCenter
 
-appHandleWithQuit :: State -> BrickEvent Name e -> EventM Name (Next State)
-appHandleWithQuit state e =
-  if isQuitEvent e
-    then quit state
-    else appHandleEvent state e
+appHandleWithQuit :: BrickEvent Name e -> EventM Name State ()
+appHandleWithQuit e
+  | isQuitEvent e = quit
+  | otherwise = appHandleEvent e
  where
   isQuitEvent (VtyEvent (EvKey (KChar 'c') [MCtrl])) = True
   isQuitEvent (VtyEvent (EvKey (KChar 'd') [MCtrl])) = True
   isQuitEvent _ = False
 
-quit :: State -> EventM Name (Next State)
-quit state = halt $ focussedBranchesL %~ L.listClear $ state
+quit :: EventM Name State ()
+quit = do
+  focussedBranchesL %= L.listClear
+  halt
 
-appHandleEvent :: State -> BrickEvent Name e -> EventM Name (Next State)
-appHandleEvent state e = case _dialog state of
-  Nothing -> appHandleEventMain state e
-  Just d -> toState =<< appHandleEventDialog d e
-   where
-    toState (SetDialog dlg) = continue $ state{_dialog = Just dlg}
-    toState (EndDialog Confirm) = halt $ state{_dialog = Nothing}
-    toState (EndDialog Cancel) =
-      continue $ state{_dialog = Nothing, _gitCommand = GitCheckout}
+appHandleEvent :: BrickEvent Name e -> EventM Name State ()
+appHandleEvent e =
+  gets _dialog >>= \case
+    Nothing -> appHandleEventMain e
+    Just d -> do
+      -- TODO: toState
+      -- let x = runStateT $ appHandleEventDialog e
+      pure ()
+     where
+      toState (SetDialog dlg) = dialogL .= Just dlg
+      toState (EndDialog Confirm) = dialogL .= Nothing >> halt
+      toState (EndDialog Cancel) = do
+        dialogL .= Nothing
+        gitCommandL .= GitCheckout
 
-appHandleEventDialog :: Dialog -> BrickEvent Name e -> EventM Name DialogResult
-appHandleEventDialog dialog (VtyEvent e) =
+appHandleEventDialog :: BrickEvent Name e -> EventM Name Dialog DialogResult
+appHandleEventDialog (VtyEvent e) = do
+  dialog <- get
   let closeDialog = pure $ EndDialog Cancel
       dialogAction = pure $ case D.dialogSelection dialog of
         Just Cancel -> EndDialog Cancel
@@ -209,39 +216,51 @@ appHandleEventDialog dialog (VtyEvent e) =
         EvKey KEnter [] -> dialogAction
         EvKey KEsc [] -> closeDialog
         EvKey (KChar 'q') [] -> closeDialog
-        ev -> SetDialog <$> D.handleDialogEvent ev dialog
-appHandleEventDialog dialog _ = pure $ SetDialog dialog
+        ev -> do
+          D.handleDialogEvent e
+          SetDialog <$> get
+appHandleEventDialog _ = SetDialog <$> get
 
-appHandleEventMain :: State -> BrickEvent Name e -> EventM Name (Next State)
-appHandleEventMain state (VtyEvent e) =
+appHandleEventMain :: BrickEvent Name e -> EventM Name State ()
+appHandleEventMain (VtyEvent e) =
   let
-    confirm c = state{_gitCommand = c, _dialog = Just $ createDialog c}
-    confirmDelete (Just (BranchCurrent _)) = continue state
-    confirmDelete (Just _) = continue $ confirm GitDeleteBranch
-    confirmDelete Nothing = continue state
-    endWithCheckout = halt $ state{_gitCommand = GitCheckout}
-    endWithRebase = halt $ state{_gitCommand = GitRebase}
-    endWithMerge = halt $ state{_gitCommand = GitMerge}
-    focusLocal = focusBranches RLocal state
-    focusRemote = focusBranches RRemote state
-    doFetch = suspendAndResume (fetchBranches state)
+    confirm cmd = do
+      gitCommandL .= cmd
+      dialogL .= Just (createDialog cmd)
+
+    confirmDelete :: Maybe Branch -> EventM Name State ()
+    confirmDelete (Just (BranchCurrent _)) = pure ()
+    confirmDelete (Just _) = confirm GitDeleteBranch
+    confirmDelete Nothing = pure ()
+    endWithCheckout = gitCommandL .= GitCheckout >> halt
+    endWithRebase = gitCommandL .= GitRebase >> halt
+    endWithMerge = gitCommandL .= GitMerge >> halt
+    focusLocal = focusBranches RLocal
+    focusRemote = focusBranches RRemote
+    doFetch = do
+      state <- get
+      suspendAndResume (fetchBranches state)
     resetFilter = filterL .~ emptyFilter
     showFilter = isEditingFilterL .~ True
     hideFilter = isEditingFilterL .~ False
-    startEditingFilter =
-      continue $ updateLists $ resetFilter $ showFilter state
-    cancelEditingFilter = continue $ hideFilter $ resetFilter state
-    stopEditingFilter = continue $ hideFilter state
-    handle =
-      if _isEditingFilter state
-        then fmap (updateLists <$>) . handleEditingFilter
-        else handleDefault
+    startEditingFilter = modify (updateLists . resetFilter . showFilter)
+    cancelEditingFilter = modify (hideFilter . resetFilter)
+    stopEditingFilter = modify hideFilter
+
+    handle event =
+      gets _isEditingFilter >>= \case
+        True -> handleEditingFilter event >> modify updateLists
+        False -> handleDefault event
+
+    handleDefault :: Event -> EventM Name State ()
     handleDefault = \case
-      EvKey KEsc [] -> quit state
-      EvKey (KChar 'q') [] -> quit state
+      EvKey KEsc [] -> quit
+      EvKey (KChar 'q') [] -> quit
       EvKey (KChar '/') [] -> startEditingFilter
       EvKey (KChar 'f') [MCtrl] -> startEditingFilter
-      EvKey (KChar 'd') [] -> confirmDelete (selectedBranch state)
+      EvKey (KChar 'd') [] -> do
+        state <- get
+        confirmDelete (selectedBranch state)
       EvKey KEnter [] -> endWithCheckout
       EvKey (KChar 'c') [] -> endWithCheckout
       EvKey (KChar 'r') [] -> endWithRebase
@@ -251,29 +270,31 @@ appHandleEventMain state (VtyEvent e) =
       EvKey KRight [] -> focusRemote
       EvKey (KChar 'l') [] -> focusRemote
       EvKey (KChar 'f') [] -> doFetch
-      _ -> navigate state e
+      _ -> navigate e
+
+    handleEditingFilter :: Event -> EventM Name State ()
     handleEditingFilter = \case
       EvKey KEsc [] -> cancelEditingFilter
       EvKey KEnter [] -> stopEditingFilter
       EvKey KUp [] -> stopEditingFilter
       EvKey KDown [] -> stopEditingFilter
-      _ -> handleFilter state e
+      _ -> handleFilter e
    in
     handle $ lowerKey e
-appHandleEventMain state _ = continue state
+appHandleEventMain _ = pure ()
 
-navigate :: State -> Event -> EventM Name (Next State)
-navigate state event =
+navigate :: Event -> EventM Name State ()
+navigate event =
   continue =<< handleEventLensed state focussedBranchesL update event
  where
   update = L.handleListEventVi L.handleListEvent
 
-handleFilter :: State -> Event -> EventM Name (Next State)
-handleFilter state event =
+handleFilter :: Event -> EventM Name State ()
+handleFilter event =
   continue =<< handleEventLensed state filterL E.handleEditorEvent (VtyEvent event)
 
-focusBranches :: RemoteName -> State -> EventM Name (Next State)
-focusBranches target state =
+focusBranches :: RemoteName -> EventM Name State ()
+focusBranches target =
   if isAlreadySelected
     then continue state
     else do
@@ -288,7 +309,7 @@ focusBranches target state =
     RLocal -> (remoteBranchesL, localBranchesL)
     RRemote -> (localBranchesL, remoteBranchesL)
 
-listOffsetDiff :: RemoteName -> EventM Name Int
+listOffsetDiff :: RemoteName -> EventM Name State Int
 listOffsetDiff target = do
   offLocal <- getOffset Local
   offRemote <- getOffset Remote
@@ -381,3 +402,9 @@ filterL = lens _filter (\s f -> s{_filter = f})
 
 isEditingFilterL :: Lens' State Bool
 isEditingFilterL = lens _isEditingFilter (\s f -> s{_isEditingFilter = f})
+
+dialogL :: Lens' State (Maybe Dialog)
+dialogL = lens _dialog (\s v -> s{_dialog = v})
+
+gitCommandL :: Lens' State GitCommand
+gitCommandL = lens _gitCommand (\s v -> s{_gitCommand = v})

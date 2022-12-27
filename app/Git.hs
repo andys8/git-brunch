@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -fno-warn-incomplete-uni-patterns #-}
-
 module Git (
   Branch (..),
   checkout,
@@ -50,6 +48,7 @@ toBranches input = toBranch <$> filter validBranch (lines input)
  where
   validBranch b = not $ isHead b || isDetachedHead b || isNoBranch b
 
+-- TODO: Fix warning
 toBranch :: String -> Branch
 toBranch line = mkBranch $ words $ dropWhile isSpace line
  where
