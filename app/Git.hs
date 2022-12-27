@@ -48,7 +48,6 @@ toBranches input = toBranch <$> filter validBranch (lines input)
  where
   validBranch b = not $ isHead b || isDetachedHead b || isNoBranch b
 
--- TODO: Fix warning
 toBranch :: String -> Branch
 toBranch line = mkBranch $ words $ dropWhile isSpace line
  where
@@ -59,7 +58,8 @@ toBranch line = mkBranch $ words $ dropWhile isSpace line
   mkBranch [] = error "empty branch name"
   parseRemoteBranch str = BranchRemote remote name
    where
-    (remote, _ : name) = span ('/' /=) str
+    (remote, rest) = span ('/' /=) str
+    name = drop 1 rest
 
 checkout :: Branch -> IO ExitCode
 checkout branch = spawnGit ["checkout", branchName branch]
@@ -86,17 +86,18 @@ readGit :: [String] -> IO String
 readGit args = readProcess "git" args []
 
 isCommonBranch :: Branch -> Bool
-isCommonBranch b =
-  branchName b
-    `elem` [ "master"
-           , "main"
-           , "dev"
-           , "devel"
-           , "develop"
-           , "development"
-           , "staging"
-           , "trunk"
-           ]
+isCommonBranch b = branchName b `elem` commonBranchNames
+ where
+  commonBranchNames =
+    [ "master"
+    , "main"
+    , "dev"
+    , "devel"
+    , "develop"
+    , "development"
+    , "staging"
+    , "trunk"
+    ]
 
 isRemoteBranch :: Branch -> Bool
 isRemoteBranch (BranchRemote _ _) = True

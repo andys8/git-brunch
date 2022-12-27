@@ -98,13 +98,9 @@ app =
 appDraw :: State -> [Widget Name]
 appDraw state =
   drawDialog state
-    : [ C.vCenter $
-          padAll 1 $
-            maxWidth 200 $
-              vBox
-                [branchLists, filterEdit, padding, instructions]
-      ]
+    : [C.vCenter $ padAll 1 $ maxWidth 200 $ vBox content]
  where
+  content = [branchLists, filterEdit, padding, instructions]
   padding = str " "
   maxWidth w = C.hCenter . hLimit w
   toBranchList r lens' =
@@ -199,7 +195,7 @@ handleDialog (VtyEvent e) = zoom (dialogL . _Just) $ D.handleDialogEvent e
 handleDialog _ = pure ()
 
 appHandleEventDialog :: Dialog -> BrickEvent Name e -> EventM Name State ()
-appHandleEventDialog dialog event@(VtyEvent e) = do
+appHandleEventDialog dialog (VtyEvent e) = do
   let closeDialog = EndDialog Cancel
       dialogAction = case D.dialogSelection dialog of
         Just Cancel -> EndDialog Cancel
@@ -214,7 +210,7 @@ appHandleEventDialog dialog event@(VtyEvent e) = do
         EvKey KEnter [] -> toState dialogAction
         EvKey KEsc [] -> toState closeDialog
         EvKey (KChar 'q') [] -> toState closeDialog
-        _ -> handleDialog event
+        ev -> handleDialog (VtyEvent ev)
 appHandleEventDialog _ _ = pure ()
 
 appHandleEventMain :: BrickEvent Name e -> EventM Name State ()

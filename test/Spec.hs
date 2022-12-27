@@ -21,6 +21,9 @@ main = hspec $ describe "Git.toBranch" $ do
   it "ignores HEAD" $ do
     toBranches "HEAD" `shouldBe` []
 
+  it "ignores empty" $ do
+    toBranches "" `shouldBe` []
+
   it "ignores origin/HEAD" $ do
     toBranches "origin/HEAD" `shouldBe` []
 
