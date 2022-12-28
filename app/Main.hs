@@ -1,4 +1,4 @@
-module Main where
+module Main (main) where
 
 import Data.Version (showVersion)
 import Options.Applicative
@@ -6,7 +6,9 @@ import Paths_git_brunch (version)
 
 import GitBrunch qualified
 
-data Mode = RunGitBrunch | ShowVersion
+data Mode
+  = RunGitBrunch
+  | ShowVersion
 
 main :: IO ()
 main = run =<< execParser opts

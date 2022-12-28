@@ -13,6 +13,7 @@ import Brick.Widgets.Edit qualified as E
 import Brick.Widgets.List qualified as L
 import Control.Exception (SomeException, catch)
 import Control.Monad
+import Control.Monad.Extra (ifM, unlessM)
 import Data.Char
 import Data.List
 import Data.Maybe (fromMaybe, isJust)
@@ -22,7 +23,6 @@ import Lens.Micro (Lens', lens, (%~), (&), (.~), (^.), _Just)
 import Lens.Micro.Mtl ((%=), (.=), (?=))
 import System.Exit
 
-import Control.Monad.Extra (unlessM)
 import Git (Branch (..))
 import Git qualified
 import Theme
@@ -47,7 +47,7 @@ data GitCommand
 
 data DialogOption
   = Cancel
-  | Confirm
+  | Confirm GitCommand
 
 data State = State
   { _focus :: RemoteName
@@ -203,9 +203,7 @@ appHandleEvent _ = pure ()
 appHandleEventMain :: Event -> EventM Name State ()
 appHandleEventMain e =
   let
-    confirmDelete (Just (BranchCurrent _)) = pure ()
-    confirmDelete (Just _) = confirmCmd GitDeleteBranch
-    confirmDelete Nothing = pure ()
+    event = lowerKey e
     endWithCheckout = gitCommandL .= GitCheckout >> halt
     endWithRebase = gitCommandL .= GitRebase >> halt
     endWithMerge = gitCommandL .= GitMerge >> halt
@@ -216,21 +214,24 @@ appHandleEventMain e =
     cancelEditingFilter = modify (hideFilter . resetFilter)
     stopEditingFilter = modify hideFilter
 
+    confirmDelete :: Maybe Branch -> EventM Name State ()
+    confirmDelete (Just (BranchCurrent _)) = pure ()
+    confirmDelete (Just _) = dialogL ?= createDialog GitDeleteBranch
+    confirmDelete Nothing = pure ()
+
     fetch = do
       state <- get
       M.suspendAndResume $ do
         branches <- fetchBranches
         pure $ updateBranches branches state
 
-    handleDefault :: Event -> EventM Name State ()
-    handleDefault = \case
+    handleDefault :: EventM Name State ()
+    handleDefault = case event of
       EvKey KEsc [] -> quit
       EvKey (KChar 'q') [] -> quit
       EvKey (KChar '/') [] -> startEditingFilter
       EvKey (KChar 'f') [MCtrl] -> startEditingFilter
-      EvKey (KChar 'd') [] -> do
-        state <- get
-        confirmDelete (selectedBranch state)
+      EvKey (KChar 'd') [] -> confirmDelete =<< gets selectedBranch
       EvKey KEnter [] -> endWithCheckout
       EvKey (KChar 'c') [] -> endWithCheckout
       EvKey (KChar 'r') [] -> endWithRebase
@@ -242,22 +243,20 @@ appHandleEventMain e =
       EvKey (KChar 'f') [] -> fetch
       _ -> zoom focussedBranchesL $ L.handleListEventVi L.handleListEvent e
 
-    handleEditingFilter :: Event -> EventM Name State ()
-    handleEditingFilter = \case
-      EvKey KEsc [] -> cancelEditingFilter
-      EvKey KEnter [] -> stopEditingFilter
-      EvKey KUp [] -> stopEditingFilter
-      EvKey KDown [] -> stopEditingFilter
-      _ -> zoom filterL $ E.handleEditorEvent (VtyEvent e)
+    handleEditingFilter :: EventM Name State ()
+    handleEditingFilter = do
+      case event of
+        EvKey KEsc [] -> cancelEditingFilter
+        EvKey KEnter [] -> stopEditingFilter
+        EvKey KUp [] -> stopEditingFilter
+        EvKey KDown [] -> stopEditingFilter
+        _ -> zoom filterL $ E.handleEditorEvent (VtyEvent e)
+      modify syncBranchLists
    in
-    do
-      let event = lowerKey e
-      isEditing <- gets _isEditingFilter
-      if isEditing
-        then do
-          handleEditingFilter event
-          modify syncBranchLists
-        else handleDefault event
+    ifM
+      (gets _isEditingFilter)
+      handleEditingFilter
+      handleDefault
 
 appHandleEventDialog :: Event -> EventM Name State ()
 appHandleEventDialog e =
@@ -266,16 +265,17 @@ appHandleEventDialog e =
       dialogL .= Nothing
       gitCommandL .= GitCheckout
 
-    confirmDialog = do
+    confirmDialog cmd = do
       dialogL .= Nothing
+      gitCommandL .= cmd
       halt
    in
     case vimifiedKey e of
       EvKey KEnter [] -> do
         dialog <- gets _dialog
         case D.dialogSelection =<< dialog of
+          Just (Confirm cmd) -> confirmDialog cmd
           Just Cancel -> cancelDialog
-          Just Confirm -> confirmDialog
           Nothing -> pure ()
       EvKey KEsc [] -> cancelDialog
       EvKey (KChar 'q') [] -> cancelDialog
@@ -283,11 +283,6 @@ appHandleEventDialog e =
 
 quit :: EventM n State ()
 quit = focussedBranchesL %= L.listClear >> halt
-
-confirmCmd :: GitCommand -> EventM Name State ()
-confirmCmd cmd = do
-  gitCommandL .= cmd
-  dialogL ?= createDialog cmd
 
 focusBranches :: RemoteName -> EventM Name State ()
 focusBranches target = do
@@ -353,7 +348,7 @@ selectedBranch state =
 createDialog :: GitCommand -> D.Dialog DialogOption
 createDialog cmd = D.dialog (Just title) (Just (0, choices)) 80
  where
-  choices = [(btnText $ show cmd, Confirm), ("Cancel", Cancel)]
+  choices = [(btnText $ show cmd, Confirm cmd), ("Cancel", Cancel)]
   title = map toUpper $ show cmd
   btnText (x : xs) = toUpper x : xs
   btnText x = x
