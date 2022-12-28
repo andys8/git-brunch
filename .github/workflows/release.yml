@@ -11,10 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1.1.1
+        uses: actions/create-release@v1.1.4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -38,9 +38,9 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - if: matrix.os  == 'ubuntu-latest'
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         name: Cache ~/.stack
         with:
           path: ~/.stack
@@ -50,7 +50,7 @@ jobs:
             ${{ runner.os }}-stack-
       - uses: haskell/actions/setup@v2
         with:
-          ghc-version: "9.2.4"
+          ghc-version: "9.2.5"
           enable-stack: true
           stack-version: "latest"
       - if: matrix.os  == 'ubuntu-latest'
