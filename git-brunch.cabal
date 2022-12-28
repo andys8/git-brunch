@@ -45,6 +45,7 @@ executable git-brunch
   build-depends:
       base >=4.7 && <5
     , brick
+    , extra
     , hspec
     , microlens
     , microlens-mtl
@@ -78,6 +79,7 @@ test-suite git-brunch-test
   build-depends:
       base >=4.7 && <5
     , brick
+    , extra
     , hspec
     , microlens
     , microlens-mtl

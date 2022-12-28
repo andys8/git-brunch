@@ -19,20 +19,35 @@ import Data.Maybe (fromMaybe, isJust)
 import Data.Vector qualified as Vec
 import Graphics.Vty hiding (update)
 import Lens.Micro (Lens', lens, (%~), (&), (.~), (^.), _Just)
-import Lens.Micro.Mtl ((%=), (.=))
+import Lens.Micro.Mtl ((%=), (.=), (?=))
 import System.Exit
 
+import Control.Monad.Extra (unlessM)
 import Git (Branch (..))
 import Git qualified
 import Theme
 
-data Name = Local | Remote | Filter deriving (Ord, Eq, Show)
-data RemoteName = RLocal | RRemote deriving (Eq)
-data GitCommand = GitRebase | GitMerge | GitCheckout | GitDeleteBranch deriving (Ord, Eq)
+data Name
+  = Local
+  | Remote
+  | Filter
+  deriving (Ord, Eq, Show)
 
--- data DialogResult = SetDialog Dialog | EndDialog DialogOption
-data DialogOption = Cancel | Confirm
-type Dialog = D.Dialog DialogOption
+data RemoteName
+  = RLocal
+  | RRemote
+  deriving (Eq)
+
+data GitCommand
+  = GitRebase
+  | GitMerge
+  | GitCheckout
+  | GitDeleteBranch
+  deriving (Ord, Eq)
+
+data DialogOption
+  = Cancel
+  | Confirm
 
 data State = State
   { _focus :: RemoteName
@@ -40,7 +55,7 @@ data State = State
   , _branches :: [Branch]
   , _localBranches :: L.List Name Branch
   , _remoteBranches :: L.List Name Branch
-  , _dialog :: Maybe Dialog
+  , _dialog :: Maybe (D.Dialog DialogOption)
   , _filter :: E.Editor String Name
   , _isEditingFilter :: Bool
   }
@@ -54,7 +69,7 @@ instance Show GitCommand where
 main :: IO ()
 main = do
   branches <- Git.listBranches `catch` gitFailed
-  state <- M.defaultMain app $ updateLists emptyState{_branches = branches}
+  state <- M.defaultMain app $ syncBranchLists emptyState{_branches = branches}
   let execGit = gitFunction (_gitCommand state)
   exitCode <- maybe noBranchErr execGit (selectedBranch state)
   when (exitCode /= ExitSuccess) $
@@ -93,7 +108,7 @@ app =
     { M.appDraw = drawApp
     , M.appChooseCursor = M.showFirstCursor
     , M.appHandleEvent = appHandleEvent
-    , M.appStartEvent = return ()
+    , M.appStartEvent = pure ()
     , M.appAttrMap = const $ themeToAttrMap theme
     }
 
@@ -194,23 +209,18 @@ appHandleEventMain e =
     endWithCheckout = gitCommandL .= GitCheckout >> halt
     endWithRebase = gitCommandL .= GitRebase >> halt
     endWithMerge = gitCommandL .= GitMerge >> halt
-    focusLocal = focusBranches RLocal
-    focusRemote = focusBranches RRemote
     resetFilter = filterL .~ emptyFilter
     showFilter = isEditingFilterL .~ True
     hideFilter = isEditingFilterL .~ False
-    startEditingFilter = modify (updateLists . resetFilter . showFilter)
+    startEditingFilter = modify (showFilter . resetFilter)
     cancelEditingFilter = modify (hideFilter . resetFilter)
     stopEditingFilter = modify hideFilter
-    doFetch = do
-      state <- get
-      -- TODO: Refactor
-      M.suspendAndResume (fetchBranches state)
 
-    handle event =
-      gets _isEditingFilter >>= \case
-        True -> handleEditingFilter event >> modify updateLists
-        False -> handleDefault event
+    fetch = do
+      state <- get
+      M.suspendAndResume $ do
+        branches <- fetchBranches
+        pure $ updateBranches branches state
 
     handleDefault :: Event -> EventM Name State ()
     handleDefault = \case
@@ -225,12 +235,12 @@ appHandleEventMain e =
       EvKey (KChar 'c') [] -> endWithCheckout
       EvKey (KChar 'r') [] -> endWithRebase
       EvKey (KChar 'm') [] -> endWithMerge
-      EvKey KLeft [] -> focusLocal
-      EvKey (KChar 'h') [] -> focusLocal
-      EvKey KRight [] -> focusRemote
-      EvKey (KChar 'l') [] -> focusRemote
-      EvKey (KChar 'f') [] -> doFetch
-      _ -> navigate e
+      EvKey KLeft [] -> focusBranches RLocal
+      EvKey (KChar 'h') [] -> focusBranches RLocal
+      EvKey KRight [] -> focusBranches RRemote
+      EvKey (KChar 'l') [] -> focusBranches RRemote
+      EvKey (KChar 'f') [] -> fetch
+      _ -> zoom focussedBranchesL $ L.handleListEventVi L.handleListEvent e
 
     handleEditingFilter :: Event -> EventM Name State ()
     handleEditingFilter = \case
@@ -238,9 +248,16 @@ appHandleEventMain e =
       EvKey KEnter [] -> stopEditingFilter
       EvKey KUp [] -> stopEditingFilter
       EvKey KDown [] -> stopEditingFilter
-      _ -> handleFilter e
+      _ -> zoom filterL $ E.handleEditorEvent (VtyEvent e)
    in
-    handle $ lowerKey e
+    do
+      let event = lowerKey e
+      isEditing <- gets _isEditingFilter
+      if isEditing
+        then do
+          handleEditingFilter event
+          modify syncBranchLists
+        else handleDefault event
 
 appHandleEventDialog :: Event -> EventM Name State ()
 appHandleEventDialog e =
@@ -267,28 +284,17 @@ appHandleEventDialog e =
 quit :: EventM n State ()
 quit = focussedBranchesL %= L.listClear >> halt
 
-navigate :: Event -> EventM Name State ()
-navigate event =
-  zoom focussedBranchesL $ L.handleListEventVi L.handleListEvent event
-
 confirmCmd :: GitCommand -> EventM Name State ()
 confirmCmd cmd = do
   gitCommandL .= cmd
-  dialogL .= Just (createDialog cmd)
-
-handleFilter :: Event -> EventM Name State ()
-handleFilter event =
-  zoom filterL $ E.handleEditorEvent (VtyEvent event)
+  dialogL ?= createDialog cmd
 
 focusBranches :: RemoteName -> EventM Name State ()
 focusBranches target = do
-  -- TODO: Refactor?
-  focus <- gets _focus
-  if focus == target
-    then pure ()
-    else do
-      offsetDiff <- listOffsetDiff target
-      modify (changeList . syncPosition offsetDiff)
+  let isAlreadyFocussed = (target ==) <$> gets _focus
+  unlessM isAlreadyFocussed $ do
+    offsetDiff <- listOffsetDiff target
+    modify (changeList . syncPosition offsetDiff)
  where
   changeList = focusL .~ target
   listIndex state = fromMaybe 0 $ state ^. currentListL . L.listSelectedL
@@ -301,31 +307,32 @@ listOffsetDiff :: RemoteName -> EventM Name State Int
 listOffsetDiff target = do
   offLocal <- getOffset Local
   offRemote <- getOffset Remote
-  return $
+  pure $
     if target == RLocal
       then offRemote - offLocal
       else offLocal - offRemote
  where
   getOffset name = maybe 0 (^. vpTop) <$> M.lookupViewport name
 
-fetchBranches :: State -> IO State
-fetchBranches state = do
+fetchBranches :: IO [Branch]
+fetchBranches = do
   putStrLn "Fetching branches"
   output <- Git.fetch
   putStr output
-  branches <- Git.listBranches
-  return $ updateLists state{_branches = branches, _filter = emptyFilter}
+  Git.listBranches
 
-updateLists :: State -> State
-updateLists state =
-  -- TODO: Format?
+updateBranches :: [Branch] -> State -> State
+updateBranches branches =
+  syncBranchLists
+    . (branchesL .~ branches)
+    . (filterL .~ emptyFilter)
+
+syncBranchLists :: State -> State
+syncBranchLists state =
   state
-    & localBranchesL
-      .~ mkList Local local
-    & remoteBranchesL
-      .~ mkList Remote remote
-    & focusL
-      %~ toggleFocus (local, remote)
+    & localBranchesL .~ mkList Local local
+    & remoteBranchesL .~ mkList Remote remote
+    & focusL %~ toggleFocus (local, remote)
  where
   mkList name xs = L.list name (Vec.fromList xs) rowHeight
   lower = map toLower
@@ -343,7 +350,7 @@ selectedBranch :: State -> Maybe Branch
 selectedBranch state =
   snd <$> L.listSelectedElement (state ^. focussedBranchesL)
 
-createDialog :: GitCommand -> Dialog
+createDialog :: GitCommand -> D.Dialog DialogOption
 createDialog cmd = D.dialog (Just title) (Just (0, choices)) 80
  where
   choices = [(btnText $ show cmd, Confirm), ("Cancel", Cancel)]
@@ -374,10 +381,11 @@ rowHeight = 1
 
 focussedBranchesL :: Lens' State (L.List Name Branch)
 focussedBranchesL =
-  let branchLens s = case s ^. focusL of
-        RLocal -> localBranchesL
-        RRemote -> remoteBranchesL
-   in lens (\s -> s ^. branchLens s) (\s bs -> (branchLens s .~ bs) s)
+  lens (\s -> s ^. branchLens s) (\s bs -> (branchLens s .~ bs) s)
+ where
+  branchLens s = case s ^. focusL of
+    RLocal -> localBranchesL
+    RRemote -> remoteBranchesL
 
 localBranchesL :: Lens' State (L.List Name Branch)
 localBranchesL = lens _localBranches (\s bs -> s{_localBranches = bs})
@@ -391,10 +399,13 @@ focusL = lens _focus (\s f -> s{_focus = f})
 filterL :: Lens' State (E.Editor String Name)
 filterL = lens _filter (\s f -> s{_filter = f})
 
+branchesL :: Lens' State [Branch]
+branchesL = lens _branches (\s f -> s{_branches = f})
+
 isEditingFilterL :: Lens' State Bool
 isEditingFilterL = lens _isEditingFilter (\s f -> s{_isEditingFilter = f})
 
-dialogL :: Lens' State (Maybe Dialog)
+dialogL :: Lens' State (Maybe (D.Dialog DialogOption))
 dialogL = lens _dialog (\s v -> s{_dialog = v})
 
 gitCommandL :: Lens' State GitCommand
