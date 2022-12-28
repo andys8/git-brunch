@@ -1,6 +1,6 @@
 module GitBrunch (main) where
 
-import Brick.Main (halt, suspendAndResume)
+import Brick.Main (halt)
 import Brick.Main qualified as M
 import Brick.Themes (themeToAttrMap)
 import Brick.Types
@@ -70,17 +70,18 @@ main = do
 
 emptyState :: State
 emptyState =
-  let mkList focus = L.list focus Vec.empty rowHeight
-   in State
-        { _focus = RLocal
-        , _gitCommand = GitCheckout
-        , _branches = []
-        , _localBranches = mkList Local
-        , _remoteBranches = mkList Remote
-        , _dialog = Nothing
-        , _filter = emptyFilter
-        , _isEditingFilter = False
-        }
+  State
+    { _focus = RLocal
+    , _gitCommand = GitCheckout
+    , _branches = []
+    , _localBranches = mkList Local
+    , _remoteBranches = mkList Remote
+    , _dialog = Nothing
+    , _filter = emptyFilter
+    , _isEditingFilter = False
+    }
+ where
+  mkList focus = L.list focus Vec.empty rowHeight
 
 emptyFilter :: E.Editor String Name
 emptyFilter = E.editor Filter Nothing ""
@@ -88,17 +89,16 @@ emptyFilter = E.editor Filter Nothing ""
 app :: M.App State e Name
 app =
   M.App
-    { M.appDraw = appDraw
+    { M.appDraw = drawApp
     , M.appChooseCursor = M.showFirstCursor
-    , M.appHandleEvent = appHandleWithQuit
+    , M.appHandleEvent = appHandleEvent
     , M.appStartEvent = return ()
     , M.appAttrMap = const $ themeToAttrMap theme
     }
 
-appDraw :: State -> [Widget Name]
-appDraw state =
-  drawDialog state
-    : [C.vCenter $ padAll 1 $ maxWidth 200 $ vBox content]
+drawApp :: State -> [Widget Name]
+drawApp state =
+  drawDialog state : [C.vCenter $ padAll 1 $ maxWidth 200 $ vBox content]
  where
   content = [branchLists, filterEdit, padding, instructions]
   padding = str " "
@@ -170,29 +170,20 @@ drawInstruction keys action =
     <+> withAttr attrBold (str action)
     & C.hCenter
 
-appHandleWithQuit :: BrickEvent Name e -> EventM Name State ()
-appHandleWithQuit e
+appHandleEvent :: BrickEvent Name e -> EventM Name State ()
+appHandleEvent e
   | isQuitEvent e = quit
-  | otherwise = appHandleEvent e
+  | otherwise =
+      gets _dialog >>= \case
+        Nothing -> appHandleEventMain e
+        Just d -> appHandleEventDialog d e
  where
   isQuitEvent (VtyEvent (EvKey (KChar 'c') [MCtrl])) = True
   isQuitEvent (VtyEvent (EvKey (KChar 'd') [MCtrl])) = True
   isQuitEvent _ = False
 
-quit :: EventM Name State ()
-quit = do
-  focussedBranchesL %= L.listClear
-  halt
-
-appHandleEvent :: BrickEvent Name e -> EventM Name State ()
-appHandleEvent e =
-  gets _dialog >>= \case
-    Nothing -> appHandleEventMain e
-    Just d -> appHandleEventDialog d e
-
-handleDialog :: BrickEvent Name e -> EventM Name State ()
-handleDialog (VtyEvent e) = zoom (dialogL . _Just) $ D.handleDialogEvent e
-handleDialog _ = pure ()
+quit :: EventM n State ()
+quit = focussedBranchesL %= L.listClear >> halt
 
 appHandleEventDialog :: Dialog -> BrickEvent Name e -> EventM Name State ()
 appHandleEventDialog dialog (VtyEvent e) = do
@@ -201,6 +192,7 @@ appHandleEventDialog dialog (VtyEvent e) = do
         Just Cancel -> EndDialog Cancel
         Just confirm -> EndDialog confirm
         Nothing -> SetDialog dialog
+
       toState (SetDialog dlg) = dialogL .= Just dlg
       toState (EndDialog Confirm) = dialogL .= Nothing >> halt
       toState (EndDialog Cancel) = do
@@ -210,7 +202,7 @@ appHandleEventDialog dialog (VtyEvent e) = do
         EvKey KEnter [] -> toState dialogAction
         EvKey KEsc [] -> toState closeDialog
         EvKey (KChar 'q') [] -> toState closeDialog
-        ev -> handleDialog (VtyEvent ev)
+        ev -> zoom (dialogL . _Just) $ D.handleDialogEvent ev
 appHandleEventDialog _ _ = pure ()
 
 appHandleEventMain :: BrickEvent Name e -> EventM Name State ()
@@ -232,7 +224,8 @@ appHandleEventMain (VtyEvent e) =
     focusRemote = focusBranches RRemote
     doFetch = do
       state <- get
-      suspendAndResume (fetchBranches state)
+      -- TODO: Refactor
+      M.suspendAndResume (fetchBranches state)
     resetFilter = filterL .~ emptyFilter
     showFilter = isEditingFilterL .~ True
     hideFilter = isEditingFilterL .~ False
@@ -286,6 +279,7 @@ handleFilter event =
 
 focusBranches :: RemoteName -> EventM Name State ()
 focusBranches target = do
+  -- TODO: Refactor?
   focus <- gets _focus
   if focus == target
     then pure ()
@@ -319,6 +313,7 @@ fetchBranches state = do
 
 updateLists :: State -> State
 updateLists state =
+  -- TODO: Format?
   state
     & localBranchesL
       .~ mkList Local local
