@@ -15,7 +15,7 @@ import Control.Exception (SomeException, catch)
 import Control.Monad
 import Data.Char
 import Data.List
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isJust)
 import Data.Vector qualified as Vec
 import Graphics.Vty hiding (update)
 import Lens.Micro (Lens', lens, (%~), (&), (.~), (^.), _Just)
@@ -29,7 +29,8 @@ import Theme
 data Name = Local | Remote | Filter deriving (Ord, Eq, Show)
 data RemoteName = RLocal | RRemote deriving (Eq)
 data GitCommand = GitRebase | GitMerge | GitCheckout | GitDeleteBranch deriving (Ord, Eq)
-data DialogResult = SetDialog Dialog | EndDialog DialogOption
+
+-- data DialogResult = SetDialog Dialog | EndDialog DialogOption
 data DialogOption = Cancel | Confirm
 type Dialog = D.Dialog DialogOption
 
@@ -171,67 +172,40 @@ drawInstruction keys action =
     & C.hCenter
 
 appHandleEvent :: BrickEvent Name e -> EventM Name State ()
-appHandleEvent e
+appHandleEvent (VtyEvent e)
   | isQuitEvent e = quit
-  | otherwise =
-      gets _dialog >>= \case
-        Nothing -> appHandleEventMain e
-        Just d -> appHandleEventDialog d e
+  | otherwise = do
+      dialog <- gets _dialog
+      if isJust dialog
+        then appHandleEventDialog e
+        else appHandleEventMain e
  where
-  isQuitEvent (VtyEvent (EvKey (KChar 'c') [MCtrl])) = True
-  isQuitEvent (VtyEvent (EvKey (KChar 'd') [MCtrl])) = True
+  isQuitEvent (EvKey (KChar 'c') [MCtrl]) = True
+  isQuitEvent (EvKey (KChar 'd') [MCtrl]) = True
   isQuitEvent _ = False
+appHandleEvent _ = pure ()
 
-quit :: EventM n State ()
-quit = focussedBranchesL %= L.listClear >> halt
-
-appHandleEventDialog :: Dialog -> BrickEvent Name e -> EventM Name State ()
-appHandleEventDialog dialog (VtyEvent e) = do
-  let closeDialog = EndDialog Cancel
-      dialogAction = case D.dialogSelection dialog of
-        Just Cancel -> EndDialog Cancel
-        Just confirm -> EndDialog confirm
-        Nothing -> SetDialog dialog
-
-      toState (SetDialog dlg) = dialogL .= Just dlg
-      toState (EndDialog Confirm) = dialogL .= Nothing >> halt
-      toState (EndDialog Cancel) = do
-        dialogL .= Nothing
-        gitCommandL .= GitCheckout
-   in case vimKey $ lowerKey e of
-        EvKey KEnter [] -> toState dialogAction
-        EvKey KEsc [] -> toState closeDialog
-        EvKey (KChar 'q') [] -> toState closeDialog
-        ev -> zoom (dialogL . _Just) $ D.handleDialogEvent ev
-appHandleEventDialog _ _ = pure ()
-
-appHandleEventMain :: BrickEvent Name e -> EventM Name State ()
-appHandleEventMain (VtyEvent e) =
+appHandleEventMain :: Event -> EventM Name State ()
+appHandleEventMain e =
   let
-    confirm :: GitCommand -> EventM Name State ()
-    confirm cmd = do
-      gitCommandL .= cmd
-      dialogL .= Just (createDialog cmd)
-
-    confirmDelete :: Maybe Branch -> EventM Name State ()
     confirmDelete (Just (BranchCurrent _)) = pure ()
-    confirmDelete (Just _) = confirm GitDeleteBranch
+    confirmDelete (Just _) = confirmCmd GitDeleteBranch
     confirmDelete Nothing = pure ()
     endWithCheckout = gitCommandL .= GitCheckout >> halt
     endWithRebase = gitCommandL .= GitRebase >> halt
     endWithMerge = gitCommandL .= GitMerge >> halt
     focusLocal = focusBranches RLocal
     focusRemote = focusBranches RRemote
-    doFetch = do
-      state <- get
-      -- TODO: Refactor
-      M.suspendAndResume (fetchBranches state)
     resetFilter = filterL .~ emptyFilter
     showFilter = isEditingFilterL .~ True
     hideFilter = isEditingFilterL .~ False
     startEditingFilter = modify (updateLists . resetFilter . showFilter)
     cancelEditingFilter = modify (hideFilter . resetFilter)
     stopEditingFilter = modify hideFilter
+    doFetch = do
+      state <- get
+      -- TODO: Refactor
+      M.suspendAndResume (fetchBranches state)
 
     handle event =
       gets _isEditingFilter >>= \case
@@ -267,11 +241,40 @@ appHandleEventMain (VtyEvent e) =
       _ -> handleFilter e
    in
     handle $ lowerKey e
-appHandleEventMain _ = pure ()
+
+appHandleEventDialog :: Event -> EventM Name State ()
+appHandleEventDialog e =
+  let
+    cancelDialog = do
+      dialogL .= Nothing
+      gitCommandL .= GitCheckout
+
+    confirmDialog = do
+      dialogL .= Nothing
+      halt
+   in
+    case vimifiedKey e of
+      EvKey KEnter [] -> do
+        dialog <- gets _dialog
+        case D.dialogSelection =<< dialog of
+          Just Cancel -> cancelDialog
+          Just Confirm -> confirmDialog
+          Nothing -> pure ()
+      EvKey KEsc [] -> cancelDialog
+      EvKey (KChar 'q') [] -> cancelDialog
+      ev -> zoom (dialogL . _Just) $ D.handleDialogEvent ev
+
+quit :: EventM n State ()
+quit = focussedBranchesL %= L.listClear >> halt
 
 navigate :: Event -> EventM Name State ()
 navigate event =
   zoom focussedBranchesL $ L.handleListEventVi L.handleListEvent event
+
+confirmCmd :: GitCommand -> EventM Name State ()
+confirmCmd cmd = do
+  gitCommandL .= cmd
+  dialogL .= Just (createDialog cmd)
 
 handleFilter :: Event -> EventM Name State ()
 handleFilter event =
@@ -299,7 +302,9 @@ listOffsetDiff target = do
   offLocal <- getOffset Local
   offRemote <- getOffset Remote
   return $
-    if target == RLocal then offRemote - offLocal else offLocal - offRemote
+    if target == RLocal
+      then offRemote - offLocal
+      else offLocal - offRemote
  where
   getOffset name = maybe 0 (^. vpTop) <$> M.lookupViewport name
 
@@ -353,8 +358,8 @@ mapKey _ e = e
 lowerKey :: Event -> Event
 lowerKey = mapKey (KChar . toLower)
 
-vimKey :: Event -> Event
-vimKey = mapKey vimify
+vimifiedKey :: Event -> Event
+vimifiedKey = mapKey vimify . lowerKey
  where
   vimify 'h' = KLeft
   vimify 'j' = KRight
