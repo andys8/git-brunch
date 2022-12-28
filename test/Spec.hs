@@ -1,51 +1,48 @@
-import           Git
-import           Test.Hspec
+import Git
+import Test.Hspec
 
 main :: IO ()
 main = hspec $ describe "Git.toBranch" $ do
+  it "returns a remote branch is starts with remote" $ do
+    toBranches "remotes/origin/master" `shouldBe` [BranchRemote "origin" "master"]
 
-  it "returns a remote branch is starts with remote"
-    $          toBranches "remotes/origin/master"
-    `shouldBe` [BranchRemote "origin" "master"]
+  it "ignores leading spaces" $ do
+    toBranches "  master" `shouldBe` [BranchLocal "master"]
 
-  it "ignores leading spaces"
-    $          toBranches "  master"
-    `shouldBe` [BranchLocal "master"]
+  it "detects current branch by asterik" $ do
+    toBranches "* master" `shouldBe` [BranchCurrent "master"]
 
-  it "detects current branch by asterik"
-    $          toBranches "* master"
-    `shouldBe` [BranchCurrent "master"]
+  it "returns a local branch" $ do
+    toBranches "master" `shouldBe` [BranchLocal "master"]
 
-  it "returns a local branch"
-    $          toBranches "master"
-    `shouldBe` [BranchLocal "master"]
+  it "returns a branch with head in name" $ do
+    toBranches "updateHead" `shouldBe` [BranchLocal "updateHead"]
 
-  it "returns a branch with head in name"
-    $          toBranches "updateHead"
-    `shouldBe` [BranchLocal "updateHead"]
+  it "ignores HEAD" $ do
+    toBranches "HEAD" `shouldBe` []
 
-  it "ignores HEAD" $ toBranches "HEAD" `shouldBe` []
+  it "ignores empty" $ do
+    toBranches "" `shouldBe` []
 
-  it "ignores origin/HEAD" $ toBranches "origin/HEAD" `shouldBe` []
+  it "ignores origin/HEAD" $ do
+    toBranches "origin/HEAD" `shouldBe` []
 
-  it "ignores detatched HEAD"
-    $          toBranches "* (HEAD detached at f01a202)"
-    `shouldBe` []
+  it "ignores detatched HEAD" $ do
+    toBranches "* (HEAD detached at f01a202)" `shouldBe` []
 
-  it "ignores 'no branch' during rebase"
-    $          toBranches "* (no branch, rebasing branch-name)"
-    `shouldBe` []
+  it "ignores 'no branch' during rebase" $ do
+    toBranches "* (no branch, rebasing branch-name)" `shouldBe` []
 
-  it "parses sample output"
-    $          toBranches sampleOutput
-    `shouldBe` [ BranchLocal "experimental/failing-debug-log-demo"
-               , BranchLocal "gh-pages"
-               , BranchLocal "master"
-               , BranchLocal "wip/delete-as-action"
-               , BranchRemote "origin" "experimental/failing-debug-log-demo"
-               , BranchRemote "origin" "gh-pages"
-               , BranchRemote "origin" "master"
-               ]
+  it "parses sample output" $ do
+    toBranches sampleOutput
+      `shouldBe` [ BranchLocal "experimental/failing-debug-log-demo"
+                 , BranchLocal "gh-pages"
+                 , BranchLocal "master"
+                 , BranchLocal "wip/delete-as-action"
+                 , BranchRemote "origin" "experimental/failing-debug-log-demo"
+                 , BranchRemote "origin" "gh-pages"
+                 , BranchRemote "origin" "master"
+                 ]
 
 sampleOutput :: String
 sampleOutput =

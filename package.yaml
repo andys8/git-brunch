@@ -17,7 +17,10 @@ description: Please see the README on GitHub at <https://github.com/andys8/git-b
 dependencies:
   - base >= 4.7 && < 5
   - brick
+  - extra
   - microlens
+  - microlens-mtl
+  - mtl
   - process
   - vector
   - vty
@@ -25,8 +28,10 @@ dependencies:
   - hspec # workaround for language servers
 
 default-extensions:
-  - StrictData
+  - ImportQualifiedPost
+  - LambdaCase
   - OverloadedStrings
+  - StrictData
 
 flags:
   static:
