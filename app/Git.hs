@@ -13,22 +13,24 @@ module Git (
 ) where
 
 import Data.Char (isSpace)
-import Data.List
+import Data.Text (Text)
+import Data.Text qualified as T
+import Data.Text.IO qualified as T
 import System.Exit
 import System.Process
 
 data Branch
-  = BranchLocal String
-  | BranchCurrent String
-  | BranchRemote String String
+  = BranchLocal Text
+  | BranchCurrent Text
+  | BranchRemote Text Text
   deriving (Eq)
 
 instance Show Branch where
-  show (BranchLocal n) = n
-  show (BranchCurrent n) = n <> "*"
-  show (BranchRemote o n) = o <> "/" <> n
+  show (BranchLocal n) = T.unpack n
+  show (BranchCurrent n) = T.unpack $ n <> "*"
+  show (BranchRemote o n) = T.unpack $ o <> "/" <> n
 
-fetch :: IO String
+fetch :: IO Text
 fetch = readGit ["fetch", "--all", "--prune"]
 
 listBranches :: IO [Branch]
@@ -43,35 +45,35 @@ listBranches =
       , "--no-color"
       ]
 
-toBranches :: String -> [Branch]
-toBranches input = toBranch <$> filter validBranch (lines input)
+toBranches :: Text -> [Branch]
+toBranches input = toBranch <$> filter validBranch (T.lines input)
  where
   validBranch b = not $ isHead b || isDetachedHead b || isNoBranch b
 
-toBranch :: String -> Branch
-toBranch line = mkBranch $ words $ dropWhile isSpace line
+toBranch :: Text -> Branch
+toBranch line = mkBranch $ T.words $ T.dropWhile isSpace line
  where
   mkBranch ("*" : name : _) = BranchCurrent name
-  mkBranch (name : _) = case stripPrefix "remotes/" name of
+  mkBranch (name : _) = case T.stripPrefix "remotes/" name of
     Just rest -> parseRemoteBranch rest
     Nothing -> BranchLocal name
   mkBranch [] = error "empty branch name"
   parseRemoteBranch str = BranchRemote remote name
    where
-    (remote, rest) = span ('/' /=) str
-    name = drop 1 rest
+    (remote, rest) = T.span ('/' /=) str
+    name = T.drop 1 rest
 
 checkout :: Branch -> IO ExitCode
 checkout branch = spawnGit ["checkout", branchName branch]
 
 rebaseInteractive :: Branch -> IO ExitCode
 rebaseInteractive branch = do
-  putStrLn $ "Rebase onto " <> fullBranchName branch
+  T.putStrLn $ "Rebase onto " <> fullBranchName branch
   spawnGit ["rebase", "--interactive", "--autostash", fullBranchName branch]
 
 merge :: Branch -> IO ExitCode
 merge branch = do
-  putStrLn $ "Merge branch " <> fullBranchName branch
+  T.putStrLn $ "Merge branch " <> fullBranchName branch
   spawnGit ["merge", fullBranchName branch]
 
 deleteBranch :: Branch -> IO ExitCode
@@ -79,11 +81,11 @@ deleteBranch (BranchCurrent _) = error "Cannot delete current branch"
 deleteBranch (BranchLocal n) = spawnGit ["branch", "-D", n]
 deleteBranch (BranchRemote o n) = spawnGit ["push", o, "--delete", n]
 
-spawnGit :: [String] -> IO ExitCode
-spawnGit args = waitForProcess =<< spawnProcess "git" args
+spawnGit :: [Text] -> IO ExitCode
+spawnGit args = waitForProcess =<< spawnProcess "git" (T.unpack <$> args)
 
-readGit :: [String] -> IO String
-readGit args = readProcess "git" args []
+readGit :: [Text] -> IO Text
+readGit args = T.pack <$> readProcess "git" (T.unpack <$> args) []
 
 isCommonBranch :: Branch -> Bool
 isCommonBranch b = branchName b `elem` commonBranchNames
@@ -105,23 +107,23 @@ isRemoteBranch _ = False
 
 --- Helper
 
-branchName :: Branch -> String
+branchName :: Branch -> Text
 branchName (BranchCurrent n) = n
 branchName (BranchLocal n) = n
 branchName (BranchRemote _ n) = n
 
-fullBranchName :: Branch -> String
+fullBranchName :: Branch -> Text
 fullBranchName (BranchCurrent n) = n
 fullBranchName (BranchLocal n) = n
 fullBranchName (BranchRemote r n) = r <> "/" <> n
 
-isHead :: String -> Bool
-isHead = isInfixOf "HEAD"
+isHead :: Text -> Bool
+isHead = T.isInfixOf "HEAD"
 
-isDetachedHead :: String -> Bool
-isDetachedHead = isInfixOf "HEAD detached"
+isDetachedHead :: Text -> Bool
+isDetachedHead = T.isInfixOf "HEAD detached"
 
 -- While rebasing git will show "no branch"
 -- e.g. "* (no branch, rebasing branch-name)"
-isNoBranch :: String -> Bool
-isNoBranch = isInfixOf "(no branch,"
+isNoBranch :: Text -> Bool
+isNoBranch = T.isInfixOf "(no branch,"
