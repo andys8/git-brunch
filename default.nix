@@ -1,17 +1,23 @@
 { nixpkgs ? import <nixpkgs> { }, compiler ? "default", doBenchmark ? false }:
+
 let
+
   inherit (nixpkgs) pkgs;
 
   f =
     { mkDerivation
     , base
     , brick
+    , extra
     , hpack
     , hspec
+    , lib
     , microlens
+    , microlens-mtl
+    , mtl
     , optparse-applicative
     , process
-    , stdenv
+    , text
     , vector
     , vty
     }:
@@ -25,27 +31,35 @@ let
       executableHaskellDepends = [
         base
         brick
+        extra
         hspec
         microlens
+        microlens-mtl
+        mtl
         optparse-applicative
         process
+        text
         vector
         vty
       ];
       testHaskellDepends = [
         base
         brick
+        extra
         hspec
         microlens
+        microlens-mtl
+        mtl
         optparse-applicative
         process
+        text
         vector
         vty
       ];
       prePatch = "hpack";
       homepage = "https://github.com/andys8/git-brunch#readme";
       description = "git checkout command-line tool";
-      license = stdenv.lib.licenses.bsd3;
+      license = lib.licenses.bsd3;
     };
 
   haskellPackages =
@@ -58,4 +72,5 @@ let
   drv = variant (haskellPackages.callPackage f { });
 
 in
+
 if pkgs.lib.inNixShell then drv.env else drv
