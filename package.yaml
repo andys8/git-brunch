@@ -21,10 +21,11 @@ dependencies:
   - microlens
   - microlens-mtl
   - mtl
+  - optparse-applicative
   - process
+  - text
   - vector
   - vty
-  - optparse-applicative
   - hspec # workaround for language servers
 
 default-extensions:

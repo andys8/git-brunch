@@ -17,6 +17,9 @@ import Control.Monad.Extra (ifM, unlessM)
 import Data.Char
 import Data.List
 import Data.Maybe (fromMaybe, isJust)
+import Data.Text (Text)
+import Data.Text qualified as T
+import Data.Text.IO qualified as T
 import Data.Vector qualified as Vec
 import Graphics.Vty hiding (update)
 import Lens.Micro (Lens', lens, (%~), (&), (.~), (^.), _Just)
@@ -56,7 +59,7 @@ data State = State
   , _localBranches :: L.List Name Branch
   , _remoteBranches :: L.List Name Branch
   , _dialog :: Maybe (D.Dialog DialogOption)
-  , _filter :: E.Editor String Name
+  , _filter :: E.Editor Text Name
   , _isEditingFilter :: Bool
   }
 
@@ -99,7 +102,7 @@ emptyState =
  where
   mkList focus = L.list focus Vec.empty rowHeight
 
-emptyFilter :: E.Editor String Name
+emptyFilter :: E.Editor Text Name
 emptyFilter = E.editor Filter Nothing ""
 
 app :: M.App State e Name
@@ -144,7 +147,7 @@ drawFilter :: State -> Widget Name
 drawFilter state =
   withBorderStyle BS.unicodeBold $ B.border $ vLimit 1 $ label <+> editor
  where
-  editor = E.renderEditor (str . unlines) True (state ^. filterL)
+  editor = E.renderEditor (txt . T.unlines) True (state ^. filterL)
   label = str " Filter: "
 
 drawDialog :: State -> Widget n
@@ -179,11 +182,11 @@ drawListElement isListFocussed branch =
   highlight b | Git.isCommonBranch b = withAttr attrBranchCommon
   highlight _ = id
 
-drawInstruction :: String -> String -> Widget n
+drawInstruction :: Text -> Text -> Widget n
 drawInstruction keys action =
-  withAttr attrKey (str keys)
-    <+> str " to "
-    <+> withAttr attrBold (str action)
+  withAttr attrKey (txt keys)
+    <+> txt " to "
+    <+> withAttr attrBold (txt action)
     & C.hCenter
 
 appHandleEvent :: BrickEvent Name e -> EventM Name State ()
@@ -311,9 +314,9 @@ listOffsetDiff target = do
 
 fetchBranches :: IO [Branch]
 fetchBranches = do
-  putStrLn "Fetching branches"
+  T.putStrLn "Fetching branches"
   output <- Git.fetch
-  putStr output
+  T.putStr output
   Git.listBranches
 
 updateBranches :: [Branch] -> State -> State
@@ -330,9 +333,8 @@ syncBranchLists state =
     & focusL %~ toggleFocus (local, remote)
  where
   mkList name xs = L.list name (Vec.fromList xs) rowHeight
-  lower = map toLower
-  filterString = lower $ unwords $ E.getEditContents $ _filter state
-  isBranchInFilter = isInfixOf filterString . Git.fullBranchName
+  filterText = T.toLower $ T.unwords $ E.getEditContents $ _filter state
+  isBranchInFilter = T.isInfixOf filterText . Git.fullBranchName
   filteredBranches = filter isBranchInFilter (_branches state)
   (remote, local) = partition Git.isRemoteBranch filteredBranches
 
@@ -391,7 +393,7 @@ remoteBranchesL = lens _remoteBranches (\s bs -> s{_remoteBranches = bs})
 focusL :: Lens' State RemoteName
 focusL = lens _focus (\s f -> s{_focus = f})
 
-filterL :: Lens' State (E.Editor String Name)
+filterL :: Lens' State (E.Editor Text Name)
 filterL = lens _filter (\s f -> s{_filter = f})
 
 branchesL :: Lens' State [Branch]

@@ -52,6 +52,7 @@ executable git-brunch
     , mtl
     , optparse-applicative
     , process
+    , text
     , vector
     , vty
   default-language: Haskell2010
@@ -86,6 +87,7 @@ test-suite git-brunch-test
     , mtl
     , optparse-applicative
     , process
+    , text
     , vector
     , vty
   default-language: Haskell2010
