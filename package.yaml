@@ -4,7 +4,7 @@ github: "andys8/git-brunch"
 license: BSD3
 author: "andys8"
 maintainer: "andys8@users.noreply.github.com"
-copyright: "2021 andys8"
+copyright: "2023 andys8"
 
 extra-source-files:
   - README.md
