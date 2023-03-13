@@ -50,7 +50,7 @@ jobs:
             ${{ runner.os }}-stack-
       - uses: haskell/actions/setup@v2
         with:
-          ghc-version: "9.2.5"
+          ghc-version: "9.2.7"
           enable-stack: true
           stack-version: "latest"
       - if: matrix.os  == 'ubuntu-latest'

@@ -21,7 +21,7 @@ jobs:
             ${{ runner.os }}-stack-
       - uses: haskell/actions/setup@v2
         with:
-          ghc-version: "9.2.5"
+          ghc-version: "9.2.7"
           enable-stack: true
           stack-version: "latest"
       - name: Build
@@ -32,3 +32,30 @@ jobs:
         run: stack run -- --version
       - name: Build statically linked
         run: stack build --flag git-brunch:static
+
+  cabal:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        name: Cache cabal
+        with:
+          path: |
+            ~/.cabal/packages
+            ~/.cabal/store
+            dist-newstyle
+          key: ${{ runner.os }}-cabal-${{ hashFiles('**/*.cabal', '**/cabal.project', '**/cabal.project.freeze') }}
+          restore-keys: ${{ runner.os }}-cabal-
+      - uses: haskell/actions/setup@v2
+        with:
+          ghc-version: "9.2.7"
+          enable-stack: false
+          cabal-version: "latest"
+      - run: cabal update
+      - name: Build
+        run: cabal build
+      - name: Run tests
+        run: cabal test
