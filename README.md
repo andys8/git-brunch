@@ -1,4 +1,4 @@
-# git-brunch [![Travis](https://travis-ci.org/andys8/git-brunch.svg?branch=master)](https://travis-ci.org/andys8/git-brunch) ![Actions](https://github.com/andys8/git-brunch/workflows/CI/badge.svg)
+# git-brunch ![Actions](https://github.com/andys8/git-brunch/workflows/CI/badge.svg)
 
 A git command-line tool to work with branches
 
