@@ -8,7 +8,7 @@ on:
 jobs:
   create_release:
     name: Create Github Release
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -35,11 +35,11 @@ jobs:
     name: Build Artifact
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-20.04, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v3
-      - if: matrix.os  == 'ubuntu-latest'
+      - if: matrix.os  == 'ubuntu-20.04'
         uses: actions/cache@v3
         name: Cache ~/.stack
         with:
@@ -53,7 +53,7 @@ jobs:
           ghc-version: "9.4.6"
           enable-stack: true
           stack-version: "latest"
-      - if: matrix.os  == 'ubuntu-latest'
+      - if: matrix.os  == 'ubuntu-20.04'
         name: Build binary (linux/static)
         run: stack install --local-bin-path dist  --flag git-brunch:static
       - if: matrix.os  == 'macos-latest'
