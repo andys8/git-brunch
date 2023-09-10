@@ -10,7 +10,7 @@ let
       }:
       mkDerivation {
         pname = "git-brunch";
-        version = "1.7.1.0";
+        version = "1.7.2.0";
         src = ./.;
         isLibrary = false;
         isExecutable = true;
