@@ -21,7 +21,7 @@ jobs:
             ${{ runner.os }}-stack-
       - uses: haskell/actions/setup@v2
         with:
-          ghc-version: "9.2.8"
+          ghc-version: "9.4.6"
           enable-stack: true
           stack-version: "latest"
       - name: Build
@@ -51,7 +51,7 @@ jobs:
           restore-keys: ${{ runner.os }}-cabal-
       - uses: haskell/actions/setup@v2
         with:
-          ghc-version: "9.2.8"
+          ghc-version: "9.4.6"
           enable-stack: false
           cabal-version: "latest"
       - run: cabal update

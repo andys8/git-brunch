@@ -34,6 +34,8 @@ data Name
   = Local
   | Remote
   | Filter
+  | DialogConfirm
+  | DialogCancel
   deriving (Ord, Eq, Show)
 
 data RemoteName
@@ -58,7 +60,7 @@ data State = State
   , _branches :: [Branch]
   , _localBranches :: L.List Name Branch
   , _remoteBranches :: L.List Name Branch
-  , _dialog :: Maybe (D.Dialog DialogOption)
+  , _dialog :: Maybe (D.Dialog DialogOption Name)
   , _filter :: E.Editor Text Name
   , _isEditingFilter :: Bool
   }
@@ -75,8 +77,8 @@ main = do
   state <- M.defaultMain app $ syncBranchLists emptyState{_branches = branches}
   let execGit = gitFunction (_gitCommand state)
   exitCode <- maybe noBranchErr execGit (selectedBranch state)
-  when (exitCode /= ExitSuccess) $
-    die ("Failed to " ++ show (_gitCommand state) ++ ".")
+  when (exitCode /= ExitSuccess)
+    $ die ("Failed to " ++ show (_gitCommand state) ++ ".")
  where
   gitFailed :: SomeException -> IO a
   gitFailed _ = exitFailure
@@ -133,8 +135,8 @@ drawApp state =
       , C.hCenter $ toBranchList RRemote remoteBranchesL
       ]
   instructions =
-    maxWidth 100 $
-      hBox
+    maxWidth 100
+      $ hBox
         [ drawInstruction "Enter" "checkout"
         , drawInstruction "/" "filter"
         , drawInstruction "F" "fetch"
@@ -150,7 +152,7 @@ drawFilter state =
   editor = E.renderEditor (txt . T.unlines) True (state ^. filterL)
   label = str " Filter: "
 
-drawDialog :: State -> Widget n
+drawDialog :: State -> Widget Name
 drawDialog state = case _dialog state of
   Nothing -> emptyWidget
   Just dialog -> D.renderDialog dialog $ C.hCenter $ padAll 1 content
@@ -166,9 +168,9 @@ drawDialog state = case _dialog state of
 
 drawBranchList :: Bool -> L.List Name Branch -> Widget Name
 drawBranchList hasFocus list =
-  withBorderStyle BS.unicodeBold $
-    B.borderWithLabel (drawTitle list) $
-      L.renderList drawListElement hasFocus list
+  withBorderStyle BS.unicodeBold
+    $ B.borderWithLabel (drawTitle list)
+    $ L.renderList drawListElement hasFocus list
  where
   attr = withAttr $ if hasFocus then attrTitleFocus else attrTitle
   drawTitle = attr . str . map toUpper . show . L.listName
@@ -277,9 +279,9 @@ appHandleEventDialog e =
       EvKey KEnter [] -> do
         dialog <- gets _dialog
         case D.dialogSelection =<< dialog of
-          Just (Confirm cmd) -> confirmDialog cmd
-          Just Cancel -> cancelDialog
-          Nothing -> pure ()
+          Just (DialogConfirm, Confirm cmd) -> confirmDialog cmd
+          Just (DialogCancel, Cancel) -> cancelDialog
+          _ -> pure ()
       EvKey KEsc [] -> cancelDialog
       EvKey (KChar 'q') [] -> cancelDialog
       ev -> zoom (dialogL . _Just) $ D.handleDialogEvent ev
@@ -305,8 +307,8 @@ listOffsetDiff :: RemoteName -> EventM Name State Int
 listOffsetDiff target = do
   offLocal <- getOffset Local
   offRemote <- getOffset Remote
-  pure $
-    if target == RLocal
+  pure
+    $ if target == RLocal
       then offRemote - offLocal
       else offLocal - offRemote
  where
@@ -328,9 +330,12 @@ updateBranches branches =
 syncBranchLists :: State -> State
 syncBranchLists state =
   state
-    & localBranchesL .~ mkList Local local
-    & remoteBranchesL .~ mkList Remote remote
-    & focusL %~ toggleFocus (local, remote)
+    & localBranchesL
+    .~ mkList Local local
+    & remoteBranchesL
+    .~ mkList Remote remote
+    & focusL
+    %~ toggleFocus (local, remote)
  where
   mkList name xs = L.list name (Vec.fromList xs) rowHeight
   filterText = T.toLower $ T.unwords $ E.getEditContents $ _filter state
@@ -347,13 +352,16 @@ selectedBranch :: State -> Maybe Branch
 selectedBranch state =
   snd <$> L.listSelectedElement (state ^. focussedBranchesL)
 
-createDialog :: GitCommand -> D.Dialog DialogOption
-createDialog cmd = D.dialog (Just title) (Just (0, choices)) 80
+createDialog :: GitCommand -> D.Dialog DialogOption Name
+createDialog cmd = D.dialog (Just $ str title) (Just (DialogConfirm, choices)) 80
  where
-  choices = [(btnText $ show cmd, Confirm cmd), ("Cancel", Cancel)]
   title = map toUpper $ show cmd
   btnText (x : xs) = toUpper x : xs
   btnText x = x
+  choices =
+    [ (btnText $ show cmd, DialogConfirm, Confirm cmd)
+    , ("Cancel", DialogCancel, Cancel)
+    ]
 
 mapKey :: (Char -> Key) -> Event -> Event
 mapKey f (EvKey (KChar k) []) = EvKey (f k) []
@@ -402,7 +410,7 @@ branchesL = lens _branches (\s f -> s{_branches = f})
 isEditingFilterL :: Lens' State Bool
 isEditingFilterL = lens _isEditingFilter (\s f -> s{_isEditingFilter = f})
 
-dialogL :: Lens' State (Maybe (D.Dialog DialogOption))
+dialogL :: Lens' State (Maybe (D.Dialog DialogOption Name))
 dialogL = lens _dialog (\s v -> s{_dialog = v})
 
 gitCommandL :: Lens' State GitCommand

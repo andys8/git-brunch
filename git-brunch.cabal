@@ -44,7 +44,7 @@ executable git-brunch
       StrictData
   build-depends:
       base >=4.7 && <5
-    , brick <1.11
+    , brick
     , extra
     , hspec
     , microlens
@@ -79,7 +79,7 @@ test-suite git-brunch-test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
-    , brick <1.11
+    , brick
     , extra
     , hspec
     , microlens
