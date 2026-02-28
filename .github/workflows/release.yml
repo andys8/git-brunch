@@ -55,8 +55,8 @@ jobs:
           enable-stack: true
           stack-version: "latest"
       - if: matrix.os  == 'ubuntu-latest'
-        name: Build binary (linux/static)
-        run: stack install --local-bin-path dist  --flag git-brunch:static
+        name: Build binary (linux/dynamic)
+        run: stack install --local-bin-path dist
       - if: matrix.os  == 'macos-latest'
         name: Build binary (macos/dynamic)
         run: stack install --local-bin-path dist
