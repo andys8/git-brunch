@@ -45,6 +45,22 @@ yay -S git-brunch
 pamac install git-brunch
 ```
 
+### Homebrew (macOS)
+
+You can install `git-brunch` via a Homebrew tap. This uses a prebuilt macOS binary.
+
+```sh
+brew tap andys8/tap
+brew install git-brunch
+```
+
+#### macOS Security Note
+Since the binary is not signed with an Apple Developer certificate, macOS might block it initially. After installation, you can run this command to allow the binary to execute:
+
+```sh
+xattr -d com.apple.quarantine $(which git-brunch)
+```
+
 ### FreeBSD
 
 `git-brunch` can be installed from the official FreeBSD package repository

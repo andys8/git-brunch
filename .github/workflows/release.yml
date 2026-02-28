@@ -5,27 +5,28 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
   create_release:
     name: Create Github Release
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1.1.4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-      - name: Output Release URL File
-        run: echo "${{ steps.create_release.outputs.upload_url }}" > release_url.txt
+        run: |
+          upload_url=$(gh release create ${{ github.ref_name }} --title "Release ${{ github.ref_name }}" --generate-notes)
+          # The gh CLI doesn't return the upload_url directly in the same format, 
+          # but we can construct it or just use gh release upload later.
+          # However, to keep the existing structure:
+          echo "https://uploads.github.com/repos/${{ github.repository }}/releases/$(gh release view ${{ github.ref_name }} --json id -q .id)/assets{?name,label}" > release_url.txt
       - name: Save Release URL File for publish
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v4
         with:
           name: release_url
           path: release_url.txt
@@ -35,12 +36,12 @@ jobs:
     name: Build Artifact
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-latest]
+        os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
-      - if: matrix.os  == 'ubuntu-20.04'
-        uses: actions/cache@v3
+      - uses: actions/checkout@v4
+      - if: matrix.os  == 'ubuntu-latest'
+        uses: actions/cache@v4
         name: Cache ~/.stack
         with:
           path: ~/.stack
@@ -48,19 +49,19 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-stack-${{ hashFiles('**/stack.yaml.lock') }}-
             ${{ runner.os }}-stack-
-      - uses: haskell/actions/setup@v2
+      - uses: haskell-actions/setup@v2
         with:
           ghc-version: "9.4.6"
           enable-stack: true
           stack-version: "latest"
-      - if: matrix.os  == 'ubuntu-20.04'
+      - if: matrix.os  == 'ubuntu-latest'
         name: Build binary (linux/static)
         run: stack install --local-bin-path dist  --flag git-brunch:static
       - if: matrix.os  == 'macos-latest'
         name: Build binary (macos/dynamic)
         run: stack install --local-bin-path dist
       - name: Load Release URL File from release job
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v4
         with:
           name: release_url
       - name: Get Release File Name & Upload URL
