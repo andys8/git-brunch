@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1.1.4
@@ -25,7 +25,7 @@ jobs:
       - name: Output Release URL File
         run: echo "${{ steps.create_release.outputs.upload_url }}" > release_url.txt
       - name: Save Release URL File for publish
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: release_url
           path: release_url.txt
@@ -38,9 +38,9 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - if: matrix.os  == 'ubuntu-latest'
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         name: Cache ~/.stack
         with:
           path: ~/.stack
@@ -60,7 +60,7 @@ jobs:
         name: Build binary (macos/dynamic)
         run: stack install --local-bin-path dist
       - name: Load Release URL File from release job
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: release_url
       - name: Get Release File Name & Upload URL
