@@ -181,6 +181,7 @@ drawListElement isListFocussed branch =
  where
   maxPadding = if isListFocussed then padRight Max else id
   highlight (BranchCurrent _) = withAttr attrBranchCurrent
+  highlight (BranchWorktree _) = withAttr attrBranchWorktree
   highlight b | Git.isCommonBranch b = withAttr attrBranchCommon
   highlight _ = id
 
@@ -221,6 +222,7 @@ appHandleEventMain e =
 
     confirmDelete :: Maybe Branch -> EventM Name State ()
     confirmDelete (Just (BranchCurrent _)) = pure ()
+    confirmDelete (Just (BranchWorktree _)) = pure ()
     confirmDelete (Just _) = do
       gitCommandL .= GitDeleteBranch
       dialogL ?= createDialog GitDeleteBranch

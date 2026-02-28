@@ -14,6 +14,9 @@ main = hspec $
     it "detects current branch by asterik" $ do
       toBranches "* master" `shouldBe` [BranchCurrent "master"]
 
+    it "detects worktree branch by plus" $ do
+      toBranches "+ master" `shouldBe` [BranchWorktree "master"]
+
     it "returns a local branch" $ do
       toBranches "master" `shouldBe` [BranchLocal "master"]
 

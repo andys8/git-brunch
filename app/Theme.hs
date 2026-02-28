@@ -27,6 +27,7 @@ theme =
     , (attrTitle, withStyle (fg brightWhite) bold)
     , (attrTitleFocus, withStyle (fg yellow) bold)
     , (attrBranchCurrent, fg brightRed)
+    , (attrBranchWorktree, fg brightCyan)
     , (attrBranchCommon, fg brightBlue)
     ]
 
@@ -47,6 +48,9 @@ attrTitleFocus = attrName "title-focus"
 
 attrBranchCurrent :: AttrName
 attrBranchCurrent = attrName "current-branch"
+
+attrBranchWorktree :: AttrName
+attrBranchWorktree = attrName "worktree-branch"
 
 attrBranchCommon :: AttrName
 attrBranchCommon = attrName "common-branch"

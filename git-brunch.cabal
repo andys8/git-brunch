@@ -1,6 +1,6 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.35.1.
+-- This file has been generated from package.yaml by hpack version 0.38.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -45,6 +45,8 @@ executable git-brunch
   build-depends:
       base >=4.7 && <5
     , brick
+    , containers
+    , directory
     , extra
     , hspec
     , microlens
@@ -80,6 +82,8 @@ test-suite git-brunch-test
   build-depends:
       base >=4.7 && <5
     , brick
+    , containers
+    , directory
     , extra
     , hspec
     , microlens

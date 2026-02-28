@@ -17,6 +17,8 @@ description: Please see the README on GitHub at <https://github.com/andys8/git-b
 dependencies:
   - base >= 4.7 && < 5
   - brick
+  - containers
+  - directory
   - extra
   - microlens
   - microlens-mtl
