@@ -75,14 +75,17 @@ main :: IO ()
 main = do
   branches <- Git.listBranches `catch` gitFailed
   state <- M.defaultMain app $ syncBranchLists emptyState{_branches = branches}
-  let execGit = gitFunction (_gitCommand state)
-  exitCode <- maybe noBranchErr execGit (selectedBranch state)
-  when (exitCode /= ExitSuccess)
-    $ die ("Failed to " ++ show (_gitCommand state) ++ ".")
+  case selectedBranch state of
+    Nothing -> pure ()
+    Just branch -> do
+      let cmd = _gitCommand state
+      let execGit = gitFunction cmd
+      exitCode <- execGit branch
+      when (exitCode /= ExitSuccess)
+        $ die ("Failed to " ++ show cmd ++ ".")
  where
   gitFailed :: SomeException -> IO a
   gitFailed _ = exitFailure
-  noBranchErr = die "No branch selected."
   gitFunction = \case
     GitCheckout -> Git.checkout
     GitRebase -> Git.rebaseInteractive
@@ -274,10 +277,29 @@ appHandleEventDialog e =
       dialogL .= Nothing
       gitCommandL .= GitCheckout
 
-    confirmDialog cmd = do
-      dialogL .= Nothing
-      gitCommandL .= cmd
-      halt
+    confirmDialog cmd =
+      if cmd == GitDeleteBranch
+        then do
+          dialogL .= Nothing
+          gitCommandL .= GitCheckout
+          state <- get
+          case selectedBranch state of
+            Nothing -> pure ()
+            Just branch -> M.suspendAndResume $ do
+              exitCode <- Git.deleteBranch branch
+              if exitCode == ExitSuccess
+                then do
+                  branches <- Git.listBranches
+                  pure $ syncBranchLists state{_branches = branches}
+                else do
+                  T.putStrLn $ "Failed to delete branch " <> Git.fullBranchName branch
+                  T.putStrLn "Press Enter to continue..."
+                  void getLine
+                  pure state
+        else do
+          dialogL .= Nothing
+          gitCommandL .= cmd
+          halt
    in
     case vimifiedKey e of
       EvKey KEnter [] -> do
@@ -329,7 +351,6 @@ updateBranches :: [Branch] -> State -> State
 updateBranches branches =
   syncBranchLists
     . (branchesL .~ branches)
-    . (filterL .~ emptyFilter)
 
 syncBranchLists :: State -> State
 syncBranchLists state =
