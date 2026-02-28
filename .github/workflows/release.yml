@@ -25,10 +25,10 @@ jobs:
       - name: Output Release URL File
         run: echo "${{ steps.create_release.outputs.upload_url }}" > release_url.txt
       - name: Save Release URL File for publish
-        uses: actions/upload-artifact@v1
-        with:
-          name: release_url
-          path: release_url.txt
+        uses: actions/upload-artifact@v3
+          with:
+            name: release_url
+            path: release_url.txt
 
   build_artifact:
     needs: [create_release]
@@ -60,7 +60,7 @@ jobs:
         name: Build binary (macos/dynamic)
         run: stack install --local-bin-path dist
       - name: Load Release URL File from release job
-        uses: actions/download-artifact@v1
+        uses: actions/download-artifact@v3
         with:
           name: release_url
       - name: Get Release File Name & Upload URL
