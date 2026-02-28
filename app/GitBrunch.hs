@@ -221,7 +221,9 @@ appHandleEventMain e =
 
     confirmDelete :: Maybe Branch -> EventM Name State ()
     confirmDelete (Just (BranchCurrent _)) = pure ()
-    confirmDelete (Just _) = dialogL ?= createDialog GitDeleteBranch
+    confirmDelete (Just _) = do
+      gitCommandL .= GitDeleteBranch
+      dialogL ?= createDialog GitDeleteBranch
     confirmDelete Nothing = pure ()
 
     fetch = do
