@@ -49,7 +49,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-stack-${{ hashFiles('**/stack.yaml.lock') }}-
             ${{ runner.os }}-stack-
-      - uses: haskell/actions/setup@v2
+      - uses: haskell-actions/setup@v2
         with:
           ghc-version: "9.4.6"
           enable-stack: true
