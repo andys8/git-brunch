@@ -84,8 +84,7 @@ spawnShell :: FilePath -> IO ExitCode
 spawnShell path = do
   setCurrentDirectory path
   userShell <- fromMaybe "/bin/sh" <$> lookupEnv "SHELL"
-  T.putStrLn $ "Switching to worktree at " <> T.pack path
-  T.putStrLn "Spawning subshell. Press Ctrl+D or type 'exit' to return."
+  T.putStrLn $ "Worktree: " <> T.pack path
   waitForProcess =<< spawnProcess userShell []
 
 rebaseInteractive :: Branch -> IO ExitCode
