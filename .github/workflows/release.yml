@@ -17,16 +17,14 @@ jobs:
         uses: actions/checkout@v4
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1.1.4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-      - name: Output Release URL File
-        run: echo "${{ steps.create_release.outputs.upload_url }}" > release_url.txt
+        run: |
+          upload_url=$(gh release create ${{ github.ref_name }} --title "Release ${{ github.ref_name }}" --generate-notes)
+          # The gh CLI doesn't return the upload_url directly in the same format, 
+          # but we can construct it or just use gh release upload later.
+          # However, to keep the existing structure:
+          echo "https://uploads.github.com/repos/${{ github.repository }}/releases/$(gh release view ${{ github.ref_name }} --json id -q .id)/assets{?name,label}" > release_url.txt
       - name: Save Release URL File for publish
         uses: actions/upload-artifact@v4
         with:
