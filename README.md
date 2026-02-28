@@ -11,7 +11,7 @@ A git command-line tool to work with branches
 - Search for a branch
 - Delete a branch
 - Fetch / Update
-- **Worktree support**: Branches checked out in other worktrees are marked with `+`. Selecting them will change the directory and spawn a subshell in the worktree.
+- Worktree support
 
 ## Usage
 
